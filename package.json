@@ -1,0 +1,66 @@
+{
+  "name": "enhanced-shift-inventory-system",
+  "version": "2.0.0",
+  "description": "Enhanced IT Shift Notes & Inventory Management System with Task Board and Real-time Updates",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js",
+    "init-db": "node init-database.js",
+    "debug-login": "node debug-login.js",
+    "fix-dashboard": "node fix-dashboard.js",
+    "backup-db": "mysqldump -u shiftnotes_user -p'Zd7010us' shift_inventory_system > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "test-db": "node -e \"require('./init-database.js')().then(() => console.log('✅ Database test passed')).catch(err => {console.error('❌ Database test failed:', err); process.exit(1);})\"",
+    "test": "echo \"Enhanced system ready for production testing\" && exit 0",
+    "health-check": "curl -f http://localhost:3000/api/dashboard || exit 1",
+    "logs": "journalctl -u shift-notes -f",
+    "restart": "sudo systemctl restart shift-notes"
+  },
+  "keywords": [
+    "shift-notes",
+    "inventory-management",
+    "task-board",
+    "it-operations",
+    "real-time",
+    "drag-drop",
+    "audit-checklist",
+    "parts-tracking",
+    "servicenow-integration",
+    "quickbase-integration"
+  ],
+  "author": "IT Department",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "internal-repository"
+  },
+  "config": {
+    "port": 3000,
+    "db_host": "127.0.0.1",
+    "db_user": "shiftnotes_user",
+    "db_name": "shift_inventory_system"
+  },
+  "files": [
+    "server.js",
+    "init-database.js",
+    "debug-login.js",
+    "public/",
+    "README.md"
+  ]
+}
