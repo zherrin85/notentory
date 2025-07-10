@@ -19,7 +19,7 @@ APP_DIR="/opt/shift-notes"
 APP_USER="shiftnotes"
 DB_NAME="shift_inventory_system"
 DB_USER="shiftnotes_user"
-DB_PASSWORD="Zd7010us"  # Change this in production!
+DB_PASSWORD="PASSWORD"  # Change this in production!
 NODE_VERSION="18"
 
 echo -e "${BLUE}🚀 IT Shift Notes & Inventory System Deployment Script${NC}"
