@@ -387,7 +387,7 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
     
     try {
         let query = `
-            SELECT i.*, 
+            SELECT i.id, i.*, 
                    CASE WHEN i.quantity <= i.min_quantity THEN 1 ELSE 0 END as low_stock,
                    (SELECT COUNT(*) FROM inventory_transactions it WHERE it.inventory_id = i.id) as transaction_count
             FROM inventory i
@@ -495,6 +495,75 @@ app.post('/api/inventory', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Add inventory error:', error);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update inventory item details (for inline editing) - NEW ENDPOINT
+app.put('/api/inventory/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    // Validate that at least one field is being updated
+    const allowedFields = ['vendor', 'product', 'part_number', 'description', 'category', 'location', 'min_quantity'];
+    const updateFields = Object.keys(updates).filter(field => allowedFields.includes(field));
+    
+    if (updateFields.length === 0) {
+        return res.status(400).json({ message: 'No valid fields to update' });
+    }
+    
+    try {
+        // Check if item exists
+        const [existingItem] = await pool.execute('SELECT * FROM inventory WHERE id = ?', [id]);
+        
+        if (existingItem.length === 0) {
+            return res.status(404).json({ message: 'Inventory item not found' });
+        }
+        
+        const currentItem = existingItem[0];
+        
+        // If part_number is being updated, check for duplicates
+        if (updates.part_number && updates.part_number !== currentItem.part_number) {
+            const [duplicate] = await pool.execute(
+                'SELECT id FROM inventory WHERE part_number = ? AND id != ?',
+                [updates.part_number, id]
+            );
+            
+            if (duplicate.length > 0) {
+                return res.status(409).json({ message: 'Part number already exists' });
+            }
+        }
+        
+        // Build the update query dynamically
+        const setClause = updateFields.map(field => `${field} = ?`).join(', ');
+        const values = updateFields.map(field => updates[field]);
+        values.push(id); // for the WHERE clause
+        
+        const updateQuery = `UPDATE inventory SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        
+        await pool.execute(updateQuery, values);
+        
+        // Log the activity
+        const changeDetails = {};
+        updateFields.forEach(field => {
+            changeDetails[field] = {
+                old: currentItem[field],
+                new: updates[field]
+            };
+        });
+        
+        await logActivity(req.user.id, 'update_inventory_details', 'inventory', id, changeDetails, req.ip);
+        
+        // Get the updated item to return
+        const [updatedItem] = await pool.execute('SELECT * FROM inventory WHERE id = ?', [id]);
+        
+        res.json({ 
+            message: 'Inventory item updated successfully',
+            item: updatedItem[0]
+        });
+        
+    } catch (error) {
+        console.error('Update inventory item error:', error);
+        res.status(500).json({ message: 'Server error: ' + error.message });
     }
 });
 
@@ -934,6 +1003,17 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Dashboard error:', error);
         res.status(500).json({ message: 'Server error: ' + error.message });
+    }
+});
+
+// Get users for filters
+app.get('/api/users', authenticateToken, async (req, res) => {
+    try {
+        const [users] = await pool.execute('SELECT id, name, email, role FROM users WHERE active = TRUE ORDER BY name');
+        res.json(users);
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 

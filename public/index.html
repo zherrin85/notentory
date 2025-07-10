@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Shift Notes & Inventory System - Enhanced</title>
+    <title>IT Shift Notes & Inventory System - Integrated</title>
     <style>
         * {
             margin: 0;
@@ -253,6 +253,175 @@
             font-family: inherit;
         }
 
+        /* Integrated Inventory Management */
+        .inventory-integration {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .inventory-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .inventory-search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .inventory-search-input {
+            width: 100%;
+            padding: 10px 40px 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+        }
+
+        .inventory-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .inventory-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f7fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inventory-item:hover {
+            background: #f7fafc;
+        }
+
+        .inventory-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-part-number {
+            font-weight: 600;
+            font-size: 13px;
+            color: #2d3748;
+        }
+
+        .item-description {
+            font-size: 11px;
+            color: #718096;
+        }
+
+        .item-quantity {
+            font-size: 12px;
+            color: #4a5568;
+            padding: 2px 6px;
+            background: #edf2f7;
+            border-radius: 4px;
+        }
+
+        .quantity-controls {
+            display: flex;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .quantity-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quantity-btn.add {
+            background: #48bb78;
+            color: white;
+        }
+
+        .quantity-btn.remove {
+            background: #f56565;
+            color: white;
+        }
+
+        .quantity-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .quick-action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action-btn.add-new {
+            background: #4299e1;
+            color: white;
+        }
+
+        .quick-action-btn.bulk-update {
+            background: #ed8936;
+            color: white;
+        }
+
+        /* Recently Used Items */
+        .recent-items {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .recent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f7fafc;
+        }
+
+        .recent-item:last-child {
+            border-bottom: none;
+        }
+
         /* Task Management */
         .task-board {
             display: grid;
@@ -438,120 +607,6 @@
             align-items: end;
         }
 
-        /* Inventory Integration */
-        .inventory-section {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .inventory-search {
-            position: relative;
-        }
-
-        .inventory-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .inventory-item {
-            padding: 10px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f7fafc;
-        }
-
-        .inventory-item:hover {
-            background: #f7fafc;
-        }
-
-        .inventory-item:last-child {
-            border-bottom: none;
-        }
-
-        .inventory-part {
-            font-weight: 600;
-            font-size: 13px;
-            color: #2d3748;
-        }
-
-        .inventory-details {
-            font-size: 11px;
-            color: #718096;
-        }
-
-        .selected-parts {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .selected-part {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            background: #e6fffa;
-            border: 1px solid #81e6d9;
-            border-radius: 6px;
-            font-size: 12px;
-        }
-
-        .remove-part {
-            background: #f56565;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 2px 6px;
-            font-size: 10px;
-            cursor: pointer;
-        }
-
-        /* Quick Inventory Updates */
-        .quick-inventory {
-            display: grid;
-            grid-template-columns: 1fr auto auto auto;
-            gap: 10px;
-            align-items: center;
-            padding: 8px;
-            background: #f7fafc;
-            border-radius: 6px;
-            margin-bottom: 8px;
-        }
-
-        .inventory-info {
-            font-size: 13px;
-        }
-
-        .inventory-info .part-number {
-            font-weight: 600;
-            color: #2d3748;
-        }
-
-        .inventory-info .quantity {
-            color: #718096;
-            font-size: 11px;
-        }
-
-        .quantity-input {
-            width: 60px;
-            padding: 4px 6px;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            text-align: center;
-        }
-
         /* Buttons */
         .btn {
             padding: 8px 16px;
@@ -612,6 +667,309 @@
             font-size: 11px;
         }
 
+        /* Inventory Reports */
+        .inventory-reports {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .inventory-table th,
+        .inventory-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .inventory-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 12px;
+        }
+
+        .inventory-table td {
+            font-size: 13px;
+        }
+
+        .low-stock {
+            background: #fed7d7 !important;
+        }
+
+        .out-of-stock {
+            background: #feb2b2 !important;
+        }
+
+        /* Inline Editing Styles */
+        .editable {
+            cursor: pointer;
+            position: relative;
+            padding: 8px !important;
+            transition: background-color 0.2s;
+        }
+
+        .editable:hover {
+            background-color: #f0f9ff !important;
+            border: 1px solid #3b82f6;
+        }
+
+        .editable.editing {
+            background-color: #fffbeb !important;
+            padding: 4px !important;
+        }
+
+        .editable input,
+        .editable textarea {
+            width: 100%;
+            border: 2px solid #3b82f6;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 12px;
+            font-family: inherit;
+            background: white;
+        }
+
+        .editable textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .editable input:focus,
+        .editable textarea:focus {
+            outline: none;
+            border-color: #1d4ed8;
+        }
+
+        .edit-controls {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .edit-controls button {
+            padding: 2px 6px;
+            font-size: 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .save-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        /* Shift Notes Display Styles */
+        .shift-note-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #4299e1;
+            transition: all 0.2s;
+        }
+
+        .shift-note-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .shift-note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .shift-note-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0;
+            flex: 1;
+        }
+
+        .shift-note-meta {
+            text-align: right;
+            font-size: 12px;
+            color: #718096;
+            margin-left: 15px;
+        }
+
+        .shift-note-employee {
+            font-weight: 600;
+            color: #4299e1;
+            margin-bottom: 2px;
+        }
+
+        .shift-note-date {
+            margin-bottom: 2px;
+        }
+
+        .shift-note-type {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .shift-note-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #4a5568;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+        }
+
+        .shift-note-summary {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #48bb78;
+            margin-bottom: 15px;
+        }
+
+        .shift-note-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .shift-note-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .shift-note-stat .icon {
+            font-size: 14px;
+        }
+
+        .shift-note-tasks {
+            margin-top: 15px;
+        }
+
+        .shift-note-tasks h5 {
+            font-size: 14px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .task-summary {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-status-count {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .task-status-count.completed {
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .task-status-count.active {
+            background: #f0f9ff;
+            color: #1e40af;
+        }
+
+        .task-status-count.blocked {
+            background: #fffaf0;
+            color: #92400e;
+        }
+
+        .expand-btn {
+            background: none;
+            border: 1px solid #e2e8f0;
+            color: #4299e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .expand-btn:hover {
+            background: #f0f9ff;
+            border-color: #4299e1;
+        }
+
+        .shift-note-expanded {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        .task-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f7fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .task-status-dot.completed {
+            background: #48bb78;
+        }
+
+        .task-status-dot.active {
+            background: #4299e1;
+        }
+
+        .task-status-dot.blocked {
+            background: #ed8936;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
         /* Summary Section */
         .shift-summary {
             background: white;
@@ -632,113 +990,6 @@
             line-height: 1.5;
             max-height: 400px;
             overflow-y: auto;
-        }
-
-        /* Search and Filter */
-        .search-section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .search-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: end;
-        }
-
-        .search-results {
-            margin-top: 20px;
-        }
-
-        .search-result {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: box-shadow 0.2s;
-        }
-
-        .search-result:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .search-result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 10px;
-        }
-
-        .search-result-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #2d3748;
-            margin: 0;
-        }
-
-        .search-result-meta {
-            text-align: right;
-            font-size: 12px;
-            color: #718096;
-        }
-
-        .search-result-content {
-            font-size: 14px;
-            color: #4a5568;
-            margin-bottom: 8px;
-        }
-
-        .search-result-tasks {
-            font-size: 13px;
-            color: #718096;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                order: 2;
-            }
-
-            .main-content {
-                order: 1;
-            }
-
-            .task-board {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .add-task-form {
-                grid-template-columns: 1fr;
-            }
-
-            .search-form {
-                grid-template-columns: 1fr;
-            }
-
-            .page-content {
-                padding: 15px;
-            }
-
-            .page-header {
-                padding: 15px 20px;
-                flex-direction: column;
-                align-items: flex-start;
-            }
         }
 
         /* Utility Classes */
@@ -809,37 +1060,47 @@
             background: #9f7aea;
         }
 
-        /* Enhanced inventory table */
-        .inventory-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
 
-        .inventory-table th,
-        .inventory-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
 
-        .inventory-table th {
-            background: #f7fafc;
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 12px;
-        }
+            .main-content {
+                order: 1;
+            }
 
-        .inventory-table td {
-            font-size: 13px;
-        }
+            .task-board {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
 
-        .low-stock {
-            background: #fed7d7 !important;
-        }
+            .inventory-integration {
+                grid-template-columns: 1fr;
+            }
 
-        .out-of-stock {
-            background: #feb2b2 !important;
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .add-task-form {
+                grid-template-columns: 1fr;
+            }
+
+            .page-content {
+                padding: 15px;
+            }
+
+            .page-header {
+                padding: 15px 20px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -849,7 +1110,7 @@
         <div class="login-box">
             <div class="login-header">
                 <h1>🔧 IT System</h1>
-                <p>Enhanced Shift Notes & Inventory Management</p>
+                <p>Integrated Shift Notes & Inventory Management</p>
             </div>
             
             <div id="login-error" class="error-message hidden"></div>
@@ -872,7 +1133,7 @@
             </form>
             
             <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #718096;">
-                Demo accounts: admin@company.com / admin123, john@company.com / password123
+                Demo: admin@company.com / admin123, john@company.com / password123
             </div>
         </div>
     </div>
@@ -891,7 +1152,8 @@
             
             <nav class="nav-menu">
                 <button class="nav-item active" data-page="shift-notes">📝 My Shift</button>
-                <button class="nav-item" data-page="search">🔍 Search Notes</button>
+                <button class="nav-item" data-page="recent-notes">📋 Recent Notes</button>
+                <button class="nav-item" data-page="search-notes">🔍 Search Notes</button>
                 <button class="nav-item" data-page="inventory">📦 Inventory</button>
                 <button class="nav-item" data-page="reports">📈 Reports</button>
                 <button class="nav-item" data-page="users" id="users-nav" style="display: none;">👥 Users</button>
@@ -904,7 +1166,7 @@
             <div class="page-header">
                 <div>
                     <h1 id="page-title">My Shift</h1>
-                    <p id="page-subtitle">Complete shift documentation and task management</p>
+                    <p id="page-subtitle">Integrated shift documentation and inventory management</p>
                 </div>
                 <div>
                     <button class="btn btn-primary" onclick="generateShiftSummary()">📄 Generate Summary</button>
@@ -946,13 +1208,39 @@
                         </form>
                     </div>
 
+                    <!-- Integrated Inventory Management -->
+                    <div class="inventory-integration">
+                        <!-- Live Inventory Search & Updates -->
+                        <div class="inventory-panel">
+                            <h4 style="margin-bottom: 15px;">📦 Inventory Quick Access</h4>
+                            <div class="inventory-search-box">
+                                <input type="text" id="inventory-search" class="inventory-search-input" placeholder="Search parts by number, name, or vendor...">
+                                <span class="search-icon">🔍</span>
+                                <div id="inventory-dropdown" class="inventory-dropdown hidden"></div>
+                            </div>
+                            
+                            <div class="quick-actions">
+                                <button class="quick-action-btn add-new" onclick="showAddItemDialog()">+ Add New Item</button>
+                                <button class="quick-action-btn bulk-update" onclick="showBulkUpdateDialog()">Bulk Update</button>
+                            </div>
+                        </div>
+
+                        <!-- Recently Used & Low Stock -->
+                        <div class="inventory-panel">
+                            <h4 style="margin-bottom: 15px;">⚠️ Attention Required</h4>
+                            <div id="attention-items" class="recent-items">
+                                <div class="loading">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Add Task Section -->
                     <div class="add-task-section">
                         <h3 style="margin-bottom: 15px;">➕ Add New Task</h3>
                         <form id="add-task-form" class="add-task-form">
                             <div class="form-field">
                                 <label for="task-title">Task Title *</label>
-                                <input type="text" id="task-title" placeholder="e.g., Antenna installation for Sean" required>
+                                <input type="text" id="task-title" placeholder="e.g., Antenna installation for Building A" required>
                             </div>
                             <div class="form-field">
                                 <label for="task-description">Description</label>
@@ -966,27 +1254,6 @@
                                 <button type="submit" class="btn btn-primary">Add Task</button>
                             </div>
                         </form>
-                    </div>
-
-                    <!-- Inventory Integration Section -->
-                    <div class="inventory-section">
-                        <h3 style="margin-bottom: 15px;">📦 Inventory Management</h3>
-                        
-                        <!-- Parts Search for Tasks -->
-                        <div class="form-field inventory-search" style="margin-bottom: 20px;">
-                            <label for="parts-search">Search Parts for Tasks</label>
-                            <input type="text" id="parts-search" placeholder="Search parts to add to tasks...">
-                            <div id="parts-dropdown" class="inventory-dropdown hidden"></div>
-                        </div>
-                        
-                        <!-- Selected Parts Display -->
-                        <div id="selected-parts" class="selected-parts"></div>
-                        
-                        <!-- Quick Inventory Updates -->
-                        <div style="margin-top: 25px;">
-                            <h4 style="margin-bottom: 15px;">Quick Inventory Updates</h4>
-                            <div id="quick-inventory-list"></div>
-                        </div>
                     </div>
 
                     <!-- Task Board -->
@@ -1053,67 +1320,48 @@
                     </div>
                 </div>
 
-                <!-- Search Content -->
-                <div id="search-content" class="hidden">
-                    <div class="search-section">
-                        <h3 style="margin-bottom: 15px;">🔍 Search Shift Notes & Tasks</h3>
-                        <form id="search-form" class="search-form">
-                            <div class="form-field">
-                                <label for="search-query">Search Terms</label>
-                                <input type="text" id="search-query" placeholder="Keywords, equipment, tickets...">
-                            </div>
-                            <div class="form-field">
-                                <label for="search-start-date">Start Date</label>
-                                <input type="date" id="search-start-date">
-                            </div>
-                            <div class="form-field">
-                                <label for="search-end-date">End Date</label>
-                                <input type="date" id="search-end-date">
-                            </div>
-                            <button type="submit" class="btn btn-primary">Search</button>
-                        </form>
-                    </div>
-                    <div id="search-results" class="search-results"></div>
-                </div>
-
                 <!-- Inventory Management Content -->
                 <div id="inventory-content" class="hidden">
-                    <div class="search-section">
-                        <h3 style="margin-bottom: 15px;">📦 Inventory Management</h3>
-                        <div class="search-form">
+                    <div class="inventory-reports">
+                        <h3 style="margin-bottom: 20px;">📦 Inventory Management</h3>
+                        
+                        <div class="report-filters">
                             <div class="form-field">
-                                <label for="inventory-search">Search Inventory</label>
-                                <input type="text" id="inventory-search" placeholder="Part number, vendor, product...">
+                                <label for="inv-search">Search Inventory</label>
+                                <input type="text" id="inv-search" placeholder="Part number, vendor, product...">
                             </div>
                             <div class="form-field">
-                                <label for="inventory-category">Category</label>
-                                <select id="inventory-category">
+                                <label for="inv-category">Category</label>
+                                <select id="inv-category">
                                     <option value="">All Categories</option>
                                 </select>
                             </div>
                             <div class="form-field">
                                 <label>&nbsp;</label>
                                 <label style="display: flex; align-items: center; gap: 8px;">
-                                    <input type="checkbox" id="low-stock-filter"> Show Low Stock Only
+                                    <input type="checkbox" id="show-low-stock"> Show Low Stock Only
                                 </label>
                             </div>
-                            <button class="btn btn-primary" onclick="searchInventory()">Search</button>
+                            <button class="btn btn-primary" onclick="searchInventoryPage()">Search</button>
                         </div>
-                    </div>
-                    
-                    <div id="inventory-results">
-                        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
-                            <h4>Inventory Items</h4>
+                        
+                        <div style="margin-bottom: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; font-size: 14px;">
+                            <strong>💡 Tip:</strong> Click on any field in the table below to edit it directly!
+                            <button class="btn btn-secondary btn-sm" onclick="testInlineEdit()" style="margin-left: 10px;">Test Edit Function</button>
+                        </div>
+                        
+                        <div id="inventory-results">
                             <table class="inventory-table">
                                 <thead>
                                     <tr>
                                         <th>Part Number</th>
                                         <th>Vendor</th>
                                         <th>Product</th>
+                                        <th>Description</th>
                                         <th>Category</th>
-                                        <th>Quantity</th>
+                                        <th>Location</th>
                                         <th>Min Qty</th>
-                                        <th>Actions</th>
+                                        <th>Current Qty / Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="inventory-table-body">
@@ -1123,6 +1371,112 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Recent Notes Content -->
+                <div id="recent-notes-content" class="hidden">
+                    <div class="inventory-reports">
+                        <h3 style="margin-bottom: 20px;">📋 Recent Shift Notes - All Employees</h3>
+                        
+                        <div class="report-filters">
+                            <div class="form-field">
+                                <label for="notes-days">Show Last</label>
+                                <select id="notes-days">
+                                    <option value="7">7 Days</option>
+                                    <option value="14">14 Days</option>
+                                    <option value="30">30 Days</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="notes-employee">Employee</label>
+                                <select id="notes-employee">
+                                    <option value="">All Employees</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="notes-shift-type">Shift Type</label>
+                                <select id="notes-shift-type">
+                                    <option value="">All Shifts</option>
+                                    <option value="day">Day Shift</option>
+                                    <option value="evening">Evening Shift</option>
+                                    <option value="night">Night Shift</option>
+                                    <option value="weekend">Weekend Shift</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="loadRecentNotes()">Refresh</button>
+                        </div>
+                        
+                        <div id="recent-notes-list">
+                            <div class="loading">Loading recent notes...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Notes Content -->
+                <div id="search-notes-content" class="hidden">
+                    <div class="inventory-reports">
+                        <h3 style="margin-bottom: 20px;">🔍 Search Shift Notes & Tasks</h3>
+                        
+                        <div class="report-filters">
+                            <div class="form-field">
+                                <label for="search-query">Search Terms</label>
+                                <input type="text" id="search-query" placeholder="Keywords, equipment, tickets, parts...">
+                            </div>
+                            <div class="form-field">
+                                <label for="search-start-date">Start Date</label>
+                                <input type="date" id="search-start-date">
+                            </div>
+                            <div class="form-field">
+                                <label for="search-end-date">End Date</label>
+                                <input type="date" id="search-end-date">
+                            </div>
+                            <div class="form-field">
+                                <label for="search-employee">Employee</label>
+                                <select id="search-employee">
+                                    <option value="">All Employees</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 20px 0;">
+                            <button class="btn btn-primary" onclick="performSearch()" style="padding: 12px 30px; font-size: 16px;">🔍 Search Notes</button>
+                        </div>
+                        
+                        <div id="search-results-list">
+                            <div style="text-align: center; color: #718096; padding: 40px;">
+                                Enter search criteria above and click "Search Notes" to find shift notes
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Content -->
+                <div id="reports-content" class="hidden">
+                    <div class="inventory-reports">
+                        <h3 style="margin-bottom: 20px;">📈 Reports & Analytics</h3>
+                        
+                        <div class="report-filters">
+                            <div class="form-field">
+                                <label for="report-type">Report Type</label>
+                                <select id="report-type">
+                                    <option value="usage">Parts Usage</option>
+                                    <option value="low_stock">Low Stock Alert</option>
+                                    <option value="transactions">Transaction History</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="report-start-date">Start Date</label>
+                                <input type="date" id="report-start-date">
+                            </div>
+                            <div class="form-field">
+                                <label for="report-end-date">End Date</label>
+                                <input type="date" id="report-end-date">
+                            </div>
+                            <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+                        </div>
+                        
+                        <div id="report-results"></div>
                     </div>
                 </div>
             </div>
@@ -1137,7 +1491,6 @@
         let authToken = localStorage.getItem('authToken');
         let currentShift = null;
         let allTasks = [];
-        let selectedParts = [];
         let inventoryData = [];
         let draggedTask = null;
 
@@ -1163,6 +1516,16 @@
             if (dateInput) {
                 dateInput.value = today;
             }
+            
+            // Set report date defaults to last 30 days
+            const reportStartDate = document.getElementById('report-start-date');
+            const reportEndDate = document.getElementById('report-end-date');
+            if (reportStartDate && reportEndDate) {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                reportStartDate.value = thirtyDaysAgo.toISOString().split('T')[0];
+                reportEndDate.value = today;
+            }
         }
 
         function setupEventListeners() {
@@ -1187,33 +1550,27 @@
                 addTaskForm.addEventListener('submit', handleAddTask);
             }
             
-            // Parts search
-            const partsSearch = document.getElementById('parts-search');
-            if (partsSearch) {
-                partsSearch.addEventListener('input', searchParts);
-            }
-            
-            // Search form
-            const searchForm = document.getElementById('search-form');
-            if (searchForm) {
-                searchForm.addEventListener('submit', handleSearch);
-            }
-            
             // Inventory search
             const inventorySearch = document.getElementById('inventory-search');
             if (inventorySearch) {
-                inventorySearch.addEventListener('input', debounce(searchInventory, 300));
+                inventorySearch.addEventListener('input', debounce(searchInventoryLive, 300));
             }
             
-            const lowStockFilter = document.getElementById('low-stock-filter');
-            if (lowStockFilter) {
-                lowStockFilter.addEventListener('change', searchInventory);
+            // Page-specific inventory search
+            const invSearch = document.getElementById('inv-search');
+            if (invSearch) {
+                invSearch.addEventListener('input', debounce(searchInventoryPage, 300));
+            }
+            
+            const showLowStock = document.getElementById('show-low-stock');
+            if (showLowStock) {
+                showLowStock.addEventListener('change', searchInventoryPage);
             }
             
             // Close dropdowns when clicking outside
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('.inventory-search')) {
-                    const dropdown = document.getElementById('parts-dropdown');
+                if (!e.target.closest('.inventory-search-box')) {
+                    const dropdown = document.getElementById('inventory-dropdown');
                     if (dropdown) {
                         dropdown.classList.add('hidden');
                     }
@@ -1373,33 +1730,54 @@
                 activeNavItem.classList.add('active');
             }
             
-            // Hide all content sections
-            document.querySelectorAll('#page-content > div').forEach(content => {
-                content.classList.add('hidden');
-            });
+            // Hide all content sections - FIXED: Check if elements exist
+            const shiftNotesContent = document.getElementById('shift-notes-content');
+            const recentNotesContent = document.getElementById('recent-notes-content');
+            const searchNotesContent = document.getElementById('search-notes-content');
+            const inventoryContent = document.getElementById('inventory-content');
+            const reportsContent = document.getElementById('reports-content');
+            
+            if (shiftNotesContent) shiftNotesContent.classList.add('hidden');
+            if (recentNotesContent) recentNotesContent.classList.add('hidden');
+            if (searchNotesContent) searchNotesContent.classList.add('hidden');
+            if (inventoryContent) inventoryContent.classList.add('hidden');
+            if (reportsContent) reportsContent.classList.add('hidden');
             
             switch(page) {
                 case 'shift-notes':
-                    updatePageHeader('My Shift', 'Complete shift documentation and task management');
-                    document.getElementById('shift-notes-content').classList.remove('hidden');
-                    loadCurrentShift();
+                    updatePageHeader('My Shift', 'Integrated shift documentation and inventory management');
+                    if (shiftNotesContent) {
+                        shiftNotesContent.classList.remove('hidden');
+                        loadCurrentShift();
+                    }
                     break;
-                case 'search':
-                    updatePageHeader('Search', 'Find previous shift notes and tasks');
-                    document.getElementById('search-content').classList.remove('hidden');
+                case 'recent-notes':
+                    updatePageHeader('Recent Notes', 'View recent shift notes from all employees');
+                    if (recentNotesContent) {
+                        recentNotesContent.classList.remove('hidden');
+                        loadRecentNotesPage();
+                    }
+                    break;
+                case 'search-notes':
+                    updatePageHeader('Search Notes', 'Search and filter shift notes and tasks');
+                    if (searchNotesContent) {
+                        searchNotesContent.classList.remove('hidden');
+                        loadSearchNotesPage();
+                    }
                     break;
                 case 'inventory':
                     updatePageHeader('Inventory', 'Manage parts and supplies');
-                    document.getElementById('inventory-content').classList.remove('hidden');
-                    loadInventoryPage();
+                    if (inventoryContent) {
+                        inventoryContent.classList.remove('hidden');
+                        loadInventoryPage();
+                    }
                     break;
                 case 'reports':
-                    updatePageHeader('Reports', 'Analytics and summaries');
-                    loadReportsPage();
-                    break;
-                case 'users':
-                    updatePageHeader('Users', 'Manage system users');
-                    loadUsersPage();
+                    updatePageHeader('Reports', 'Analytics and inventory reports');
+                    if (reportsContent) {
+                        reportsContent.classList.remove('hidden');
+                        loadReportsPage();
+                    }
                     break;
             }
         }
@@ -1433,14 +1811,14 @@
                 currentShift = data;
                 allTasks = data.tasks || [];
                 
-                // Populate shift form
+                // Populate shift form - FIXED: Proper date formatting
                 populateShiftForm(data.shift);
                 
                 // Load inventory for parts search
                 await loadInventoryData();
                 
-                // Load quick inventory
-                await loadQuickInventory();
+                // Load attention items (low stock, etc.)
+                await loadAttentionItems();
                 
                 hideLoading();
                 
@@ -1467,8 +1845,14 @@
             
             if (titleEl) titleEl.value = shift.title || '';
             if (typeEl) typeEl.value = shift.shift_type || 'day';
-            if (dateEl) dateEl.value = shift.shift_date || new Date().toISOString().split('T')[0];
             if (contentEl) contentEl.value = shift.content || '';
+            
+            // FIXED: Proper date formatting for HTML date input
+            if (dateEl && shift.shift_date) {
+                const date = new Date(shift.shift_date);
+                const formattedDate = date.toISOString().split('T')[0];
+                dateEl.value = formattedDate;
+            }
         }
 
         async function saveShiftNote() {
@@ -1512,6 +1896,151 @@
             }
         }
 
+        // Inventory Management Functions
+        async function loadInventoryData() {
+            console.log('📦 Loading inventory data...');
+            try {
+                const response = await fetch('/api/inventory?limit=1000', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load inventory');
+                
+                const data = await response.json();
+                inventoryData = data.inventory;
+                console.log('📦 Loaded inventory items:', inventoryData.length);
+                
+            } catch (error) {
+                console.error('❌ Load inventory error:', error);
+            }
+        }
+
+        async function loadAttentionItems() {
+            console.log('⚠️ Loading attention items...');
+            try {
+                const response = await fetch('/api/inventory?low_stock=true&limit=20', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load attention items');
+                
+                const data = await response.json();
+                renderAttentionItems(data.inventory);
+                
+            } catch (error) {
+                console.error('❌ Load attention items error:', error);
+            }
+        }
+
+        function renderAttentionItems(items) {
+            const container = document.getElementById('attention-items');
+            if (!container) return;
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #48bb78; padding: 20px;">✅ All items properly stocked!</div>';
+                return;
+            }
+            
+            container.innerHTML = items.map(item => `
+                <div class="recent-item ${item.quantity === 0 ? 'out-of-stock' : 'low-stock'}">
+                    <div class="item-info">
+                        <div class="item-part-number">${item.part_number}</div>
+                        <div class="item-description">${item.vendor} - ${item.product}</div>
+                    </div>
+                    <div class="item-quantity">${item.quantity}/${item.min_quantity}</div>
+                </div>
+            `).join('');
+        }
+
+        function searchInventoryLive() {
+            const searchInput = document.getElementById('inventory-search');
+            const dropdown = document.getElementById('inventory-dropdown');
+            
+            if (!searchInput || !dropdown) return;
+            
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            if (searchTerm.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            const matches = inventoryData.filter(item => 
+                item.part_number.toLowerCase().includes(searchTerm) ||
+                item.product.toLowerCase().includes(searchTerm) ||
+                item.vendor.toLowerCase().includes(searchTerm)
+            ).slice(0, 10);
+            
+            if (matches.length === 0) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            dropdown.innerHTML = matches.map(item => `
+                <div class="inventory-item">
+                    <div class="item-info">
+                        <div class="item-part-number">${item.part_number}</div>
+                        <div class="item-description">${item.vendor} ${item.product}</div>
+                    </div>
+                    <div class="item-quantity">${item.quantity}</div>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn add" onclick="quickAdjustInventory('${item.part_number}', 'add')" title="Add">+</button>
+                        <button class="quantity-btn remove" onclick="quickAdjustInventory('${item.part_number}', 'remove')" title="Remove">-</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            dropdown.classList.remove('hidden');
+        }
+
+        async function quickAdjustInventory(partNumber, action) {
+            const quantity = prompt(`Enter quantity to ${action}:`, '1');
+            
+            if (!quantity || parseInt(quantity) <= 0) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/inventory/update-quantity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        part_number: partNumber,
+                        quantity_change: parseInt(quantity),
+                        action: action,
+                        notes: `Quick adjustment from shift interface`,
+                        shift_note_id: currentShift ? currentShift.shift_id : null
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to update inventory');
+                }
+                
+                showAlert('success', `${action === 'add' ? 'Added' : 'Removed'} ${quantity} ${partNumber}`);
+                
+                // Reload inventory data
+                await loadInventoryData();
+                await loadAttentionItems();
+                
+                // Close dropdown
+                const dropdown = document.getElementById('inventory-dropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+                
+                const searchInput = document.getElementById('inventory-search');
+                if (searchInput) searchInput.value = '';
+                
+            } catch (error) {
+                console.error('❌ Quick inventory update error:', error);
+                showAlert('error', 'Error updating inventory: ' + error.message);
+            }
+        }
+
+        // Task Management
         function renderAudits(audits) {
             console.log('✅ Rendering audits:', audits);
             
@@ -1529,8 +2058,6 @@
                         checkbox.checked = false;
                         if (timeSpan) timeSpan.textContent = '';
                     }
-                } else {
-                    console.warn('⚠️ Audit checkbox not found:', auditId);
                 }
             });
         }
@@ -1766,7 +2293,7 @@
                         title: title,
                         description: description,
                         tickets: tickets,
-                        parts_used: selectedParts,
+                        parts_used: [],
                         status: 'active'
                     })
                 });
@@ -1785,7 +2312,7 @@
                     description: description,
                     status: 'active',
                     tickets: JSON.stringify(tickets),
-                    parts_used: JSON.stringify(selectedParts),
+                    parts_used: JSON.stringify([]),
                     created_at: new Date().toISOString(),
                     blocker_reason: null
                 };
@@ -1795,8 +2322,6 @@
                 // Clear form
                 const addTaskForm = document.getElementById('add-task-form');
                 if (addTaskForm) addTaskForm.reset();
-                selectedParts = [];
-                renderSelectedParts();
                 
                 renderTasks();
                 showAlert('success', 'Task added successfully');
@@ -1805,180 +2330,6 @@
                 console.error('❌ Add task error:', error);
                 showAlert('error', 'Error adding task: ' + error.message);
             }
-        }
-
-        // Parts Search Functions
-        async function loadInventoryData() {
-            console.log('📦 Loading inventory data...');
-            try {
-                const response = await fetch('/api/inventory?limit=1000', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                
-                if (!response.ok) throw new Error('Failed to load inventory');
-                
-                const data = await response.json();
-                inventoryData = data.inventory;
-                console.log('📦 Loaded inventory items:', inventoryData.length);
-                
-            } catch (error) {
-                console.error('❌ Load inventory error:', error);
-            }
-        }
-
-        async function loadQuickInventory() {
-            console.log('⚡ Loading quick inventory...');
-            try {
-                const response = await fetch('/api/inventory?limit=20', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                
-                if (!response.ok) throw new Error('Failed to load inventory');
-                
-                const data = await response.json();
-                renderQuickInventory(data.inventory);
-                
-            } catch (error) {
-                console.error('❌ Load quick inventory error:', error);
-            }
-        }
-
-        function renderQuickInventory(inventory) {
-            const container = document.getElementById('quick-inventory-list');
-            if (!container) return;
-            
-            container.innerHTML = inventory.map(item => `
-                <div class="quick-inventory">
-                    <div class="inventory-info">
-                        <div class="part-number">${item.part_number}</div>
-                        <div class="quantity">${item.vendor} ${item.product} (${item.quantity} available)</div>
-                    </div>
-                    <input type="number" class="quantity-input" id="qty-${item.id}" min="1" placeholder="Qty">
-                    <button class="btn btn-success btn-sm" onclick="quickUpdateInventory(${item.id}, 'add')">Add</button>
-                    <button class="btn btn-warning btn-sm" onclick="quickUpdateInventory(${item.id}, 'remove')">Remove</button>
-                </div>
-            `).join('');
-        }
-
-        async function quickUpdateInventory(itemId, action) {
-            const qtyInput = document.getElementById(`qty-${itemId}`);
-            const quantity = parseInt(qtyInput.value);
-            
-            if (!quantity || quantity <= 0) {
-                showAlert('error', 'Please enter a valid quantity');
-                return;
-            }
-            
-            const item = inventoryData.find(i => i.id === itemId);
-            if (!item) {
-                showAlert('error', 'Item not found');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/inventory/update-quantity', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        part_number: item.part_number,
-                        quantity_change: quantity,
-                        action: action,
-                        notes: `Quick update from shift interface`,
-                        shift_note_id: currentShift ? currentShift.shift_id : null
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to update inventory');
-                }
-                
-                qtyInput.value = '';
-                showAlert('success', `${action === 'add' ? 'Added' : 'Removed'} ${quantity} ${item.part_number}`);
-                
-                // Reload quick inventory
-                await loadQuickInventory();
-                
-            } catch (error) {
-                console.error('❌ Quick inventory update error:', error);
-                showAlert('error', 'Error updating inventory: ' + error.message);
-            }
-        }
-
-        function searchParts() {
-            const searchInput = document.getElementById('parts-search');
-            const dropdown = document.getElementById('parts-dropdown');
-            
-            if (!searchInput || !dropdown) return;
-            
-            const searchTerm = searchInput.value.toLowerCase();
-            
-            if (searchTerm.length < 2) {
-                dropdown.classList.add('hidden');
-                return;
-            }
-            
-            const matches = inventoryData.filter(item => 
-                item.part_number.toLowerCase().includes(searchTerm) ||
-                item.product.toLowerCase().includes(searchTerm) ||
-                item.vendor.toLowerCase().includes(searchTerm)
-            ).slice(0, 10);
-            
-            if (matches.length === 0) {
-                dropdown.classList.add('hidden');
-                return;
-            }
-            
-            dropdown.innerHTML = matches.map(item => `
-                <div class="inventory-item" onclick="selectPart(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                    <div class="inventory-part">${item.part_number}</div>
-                    <div class="inventory-details">${item.vendor} ${item.product} (${item.quantity} available)</div>
-                </div>
-            `).join('');
-            
-            dropdown.classList.remove('hidden');
-        }
-
-        function selectPart(item) {
-            const quantity = prompt(`How many ${item.part_number} were used?`, '1');
-            
-            if (quantity && parseInt(quantity) > 0) {
-                const selectedPart = {
-                    part_number: item.part_number,
-                    vendor: item.vendor,
-                    product: item.product,
-                    quantity: parseInt(quantity)
-                };
-                
-                selectedParts.push(selectedPart);
-                renderSelectedParts();
-                
-                const partsSearch = document.getElementById('parts-search');
-                const dropdown = document.getElementById('parts-dropdown');
-                
-                if (partsSearch) partsSearch.value = '';
-                if (dropdown) dropdown.classList.add('hidden');
-            }
-        }
-
-        function renderSelectedParts() {
-            const container = document.getElementById('selected-parts');
-            if (!container) return;
-            
-            container.innerHTML = selectedParts.map((part, index) => `
-                <div class="selected-part">
-                    <span>${part.part_number} x${part.quantity}</span>
-                    <button class="remove-part" onclick="removePart(${index})">×</button>
-                </div>
-            `).join('');
-        }
-
-        function removePart(index) {
-            selectedParts.splice(index, 1);
-            renderSelectedParts();
         }
 
         // Audit Functions
@@ -2183,71 +2534,7 @@
             }
         }
 
-        // Search Functions
-        async function handleSearch(e) {
-            e.preventDefault();
-            console.log('🔍 Handling search...');
-            
-            const query = document.getElementById('search-query')?.value;
-            const startDate = document.getElementById('search-start-date')?.value;
-            const endDate = document.getElementById('search-end-date')?.value;
-            
-            if (!query && !startDate && !endDate) {
-                showAlert('warning', 'Please enter search criteria');
-                return;
-            }
-            
-            try {
-                showLoading('Searching...');
-                
-                const params = new URLSearchParams();
-                if (query) params.append('query', query);
-                if (startDate) params.append('start_date', startDate);
-                if (endDate) params.append('end_date', endDate);
-                
-                const response = await fetch(`/api/search?${params}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                
-                if (!response.ok) throw new Error('Search failed');
-                
-                const data = await response.json();
-                renderSearchResults(data.results);
-                hideLoading();
-                
-            } catch (error) {
-                console.error('❌ Search error:', error);
-                showAlert('error', 'Search failed: ' + error.message);
-                hideLoading();
-            }
-        }
-
-        function renderSearchResults(results) {
-            const container = document.getElementById('search-results');
-            if (!container) return;
-            
-            if (results.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No results found for your search criteria.</div>';
-                return;
-            }
-            
-            container.innerHTML = results.map(result => `
-                <div class="search-result">
-                    <div class="search-result-header">
-                        <h4 class="search-result-title">${result.title}</h4>
-                        <div class="search-result-meta">
-                            <div>${new Date(result.shift_date).toLocaleDateString()}</div>
-                            <div>${result.created_by_name}</div>
-                            <div>${result.task_count || 0} tasks</div>
-                        </div>
-                    </div>
-                    ${result.content ? `<div class="search-result-content">${result.content.substring(0, 200)}${result.content.length > 200 ? '...' : ''}</div>` : ''}
-                    ${result.task_titles ? `<div class="search-result-tasks"><strong>Tasks:</strong> ${result.task_titles}</div>` : ''}
-                </div>
-            `).join('');
-        }
-
-        // Inventory Management
+        // Inventory Page Functions
         async function loadInventoryPage() {
             console.log('📦 Loading inventory page...');
             
@@ -2259,7 +2546,7 @@
                 
                 if (categoriesResponse.ok) {
                     const categories = await categoriesResponse.json();
-                    const categorySelect = document.getElementById('inventory-category');
+                    const categorySelect = document.getElementById('inv-category');
                     if (categorySelect) {
                         categorySelect.innerHTML = '<option value="">All Categories</option>' + 
                             categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
@@ -2267,20 +2554,20 @@
                 }
                 
                 // Load initial inventory
-                searchInventory();
+                searchInventoryPage();
                 
             } catch (error) {
                 console.error('❌ Load inventory page error:', error);
             }
         }
 
-        async function searchInventory() {
-            console.log('🔍 Searching inventory...');
+        async function searchInventoryPage() {
+            console.log('🔍 Searching inventory page...');
             
             try {
-                const search = document.getElementById('inventory-search')?.value || '';
-                const category = document.getElementById('inventory-category')?.value || '';
-                const lowStock = document.getElementById('low-stock-filter')?.checked || false;
+                const search = document.getElementById('inv-search')?.value || '';
+                const category = document.getElementById('inv-category')?.value || '';
+                const lowStock = document.getElementById('show-low-stock')?.checked || false;
                 
                 const params = new URLSearchParams();
                 if (search) params.append('search', search);
@@ -2308,27 +2595,67 @@
             if (!tbody) return;
             
             if (inventory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No inventory items found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No inventory items found</td></tr>';
                 return;
             }
             
-            tbody.innerHTML = inventory.map(item => {
+            // Clear existing content first
+            tbody.innerHTML = '';
+            
+            inventory.forEach(item => {
                 const rowClass = item.quantity === 0 ? 'out-of-stock' : (item.low_stock ? 'low-stock' : '');
-                return `
-                    <tr class="${rowClass}">
-                        <td>${item.part_number}</td>
-                        <td>${item.vendor}</td>
-                        <td>${item.product}</td>
-                        <td>${item.category}</td>
-                        <td>${item.quantity}</td>
-                        <td>${item.min_quantity}</td>
-                        <td>
+                const row = document.createElement('tr');
+                row.className = rowClass;
+                row.dataset.itemId = item.id;
+                
+                row.innerHTML = `
+                    <td class="editable" data-field="part_number" data-type="text" title="Click to edit">${item.part_number}</td>
+                    <td class="editable" data-field="vendor" data-type="text" title="Click to edit">${item.vendor}</td>
+                    <td class="editable" data-field="product" data-type="text" title="Click to edit">${item.product}</td>
+                    <td class="editable" data-field="description" data-type="textarea" title="Click to edit">${item.description || ''}</td>
+                    <td class="editable" data-field="category" data-type="text" title="Click to edit">${item.category}</td>
+                    <td class="editable" data-field="location" data-type="text" title="Click to edit">${item.location || ''}</td>
+                    <td class="editable" data-field="min_quantity" data-type="number" title="Click to edit">${item.min_quantity}</td>
+                    <td>
+                        <span class="quantity-display">${item.quantity}</span>
+                        <div class="quantity-controls" style="margin-top: 5px;">
                             <button class="btn btn-success btn-xs" onclick="adjustInventory('${item.part_number}', 'add')">+</button>
                             <button class="btn btn-warning btn-xs" onclick="adjustInventory('${item.part_number}', 'remove')">-</button>
-                        </td>
-                    </tr>
+                        </div>
+                    </td>
                 `;
-            }).join('');
+                
+                // Add event listeners to editable cells in this row
+                row.querySelectorAll('.editable').forEach(cell => {
+                    cell.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Cell clicked:', this.dataset.field); // Debug log
+                        if (!this.querySelector('input') && !this.querySelector('textarea') && !this.classList.contains('editing')) {
+                            makeEditable(this);
+                        }
+                    });
+                    
+                    // Add hover effect
+                    cell.addEventListener('mouseenter', function() {
+                        if (!this.classList.contains('editing')) {
+                            this.style.backgroundColor = '#f0f9ff';
+                            this.style.cursor = 'pointer';
+                        }
+                    });
+                    
+                    cell.addEventListener('mouseleave', function() {
+                        if (!this.classList.contains('editing')) {
+                            this.style.backgroundColor = '';
+                            this.style.cursor = '';
+                        }
+                    });
+                });
+                
+                tbody.appendChild(row);
+            });
+            
+            console.log('Inventory table rendered with', inventory.length, 'items'); // Debug log
         }
 
         async function adjustInventory(partNumber, action) {
@@ -2360,12 +2687,617 @@
                 }
                 
                 showAlert('success', `${action === 'add' ? 'Added' : 'Removed'} ${quantity} ${partNumber}`);
-                searchInventory();
+                searchInventoryPage();
                 
             } catch (error) {
                 console.error('❌ Adjust inventory error:', error);
                 showAlert('error', 'Error updating inventory: ' + error.message);
             }
+        }
+
+        // Inline Editing Functions
+        function makeEditable(cell) {
+            console.log('Making cell editable:', cell.dataset.field); // Debug log
+            
+            const currentValue = cell.textContent.trim();
+            const field = cell.dataset.field;
+            const type = cell.dataset.type;
+            const row = cell.closest('tr');
+            const itemId = row.dataset.itemId;
+            
+            console.log('Edit details:', { currentValue, field, type, itemId }); // Debug log
+            
+            // Don't edit if already editing
+            if (cell.classList.contains('editing')) {
+                console.log('Already editing, skipping');
+                return;
+            }
+            
+            cell.classList.add('editing');
+            cell.innerHTML = '';
+            
+            let input;
+            if (type === 'textarea') {
+                input = document.createElement('textarea');
+                input.rows = 3;
+            } else {
+                input = document.createElement('input');
+                input.type = type || 'text';
+                if (type === 'number') {
+                    input.min = '0';
+                    input.step = '1';
+                }
+            }
+            
+            input.value = currentValue;
+            input.style.width = '100%';
+            input.style.padding = '4px';
+            input.style.border = '2px solid #3b82f6';
+            input.style.borderRadius = '4px';
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveEdit(cell, input.value, field, itemId, currentValue);
+                } else if (e.key === 'Escape') {
+                    cancelEdit(cell, currentValue);
+                }
+            });
+            
+            const controls = document.createElement('div');
+            controls.className = 'edit-controls';
+            controls.style.display = 'flex';
+            controls.style.gap = '4px';
+            controls.style.marginTop = '4px';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'save-btn';
+            saveBtn.textContent = '✓ Save';
+            saveBtn.style.cssText = 'padding: 2px 6px; font-size: 10px; background: #10b981; color: white; border: none; border-radius: 3px; cursor: pointer;';
+            saveBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                saveEdit(cell, input.value, field, itemId, currentValue);
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'cancel-btn';
+            cancelBtn.textContent = '✗ Cancel';
+            cancelBtn.style.cssText = 'padding: 2px 6px; font-size: 10px; background: #ef4444; color: white; border: none; border-radius: 3px; cursor: pointer;';
+            cancelBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelEdit(cell, currentValue);
+            };
+            
+            controls.appendChild(saveBtn);
+            controls.appendChild(cancelBtn);
+            
+            cell.appendChild(input);
+            cell.appendChild(controls);
+            
+            input.focus();
+            input.select();
+            
+            console.log('Edit interface created'); // Debug log
+        }
+
+        async function saveEdit(cell, newValue, field, itemId, originalValue) {
+            // Validate the input
+            if (!newValue.trim()) {
+                showAlert('error', 'Value cannot be empty');
+                return;
+            }
+            
+            // Check if value actually changed
+            if (newValue.trim() === originalValue) {
+                cancelEdit(cell, originalValue);
+                return;
+            }
+            
+            try {
+                showLoading('Updating...');
+                
+                const updateData = {
+                    [field]: newValue.trim()
+                };
+                
+                // Special handling for numeric fields
+                if (field === 'min_quantity') {
+                    updateData[field] = parseInt(newValue) || 0;
+                }
+                
+                const response = await fetch(`/api/inventory/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to update item');
+                }
+                
+                hideLoading();
+                
+                // Update the cell display
+                cell.classList.remove('editing');
+                cell.textContent = newValue.trim();
+                
+                showAlert('success', `Updated ${field.replace('_', ' ')} successfully`);
+                
+                // Update local inventory data
+                const item = inventoryData.find(i => i.id == itemId);
+                if (item) {
+                    item[field] = field === 'min_quantity' ? parseInt(newValue) || 0 : newValue.trim();
+                }
+                
+            } catch (error) {
+                console.error('❌ Save edit error:', error);
+                hideLoading();
+                showAlert('error', 'Error updating item: ' + error.message);
+                cancelEdit(cell, originalValue);
+            }
+        }
+
+        function cancelEdit(cell, originalValue) {
+            cell.classList.remove('editing');
+            cell.textContent = originalValue;
+        }
+
+        // Reports Page Functions
+        function loadReportsPage() {
+            console.log('📈 Loading reports page...');
+        }
+
+        async function generateReport() {
+            console.log('📊 Generating report...');
+            
+            const reportType = document.getElementById('report-type')?.value;
+            const startDate = document.getElementById('report-start-date')?.value;
+            const endDate = document.getElementById('report-end-date')?.value;
+            
+            if (!reportType) {
+                showAlert('error', 'Please select a report type');
+                return;
+            }
+            
+            try {
+                showLoading('Generating report...');
+                
+                const params = new URLSearchParams();
+                params.append('type', reportType);
+                if (startDate) params.append('start_date', startDate);
+                if (endDate) params.append('end_date', endDate);
+                
+                const response = await fetch(`/api/reports/inventory?${params}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to generate report');
+                
+                const data = await response.json();
+                renderReport(data);
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Generate report error:', error);
+                showAlert('error', 'Error generating report: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function renderReport(reportData) {
+            const container = document.getElementById('report-results');
+            if (!container) return;
+            
+            let html = `<h4>Report: ${reportData.type.charAt(0).toUpperCase() + reportData.type.slice(1).replace('_', ' ')}</h4>`;
+            html += `<p><strong>Generated:</strong> ${new Date(reportData.generated_at).toLocaleString()}</p>`;
+            
+            if (reportData.filters.start_date || reportData.filters.end_date) {
+                html += `<p><strong>Date Range:</strong> ${reportData.filters.start_date || 'All'} to ${reportData.filters.end_date || 'All'}</p>`;
+            }
+            
+            if (reportData.data.length === 0) {
+                html += '<p>No data found for the selected criteria.</p>';
+            } else {
+                html += '<table class="inventory-table"><thead>';
+                
+                // Generate table headers based on report type
+                if (reportData.type === 'usage') {
+                    html += '<tr><th>Part Number</th><th>Vendor</th><th>Product</th><th>Category</th><th>Total Used</th><th>Transactions</th></tr>';
+                } else if (reportData.type === 'low_stock') {
+                    html += '<tr><th>Part Number</th><th>Vendor</th><th>Product</th><th>Current Qty</th><th>Min Qty</th><th>Shortage</th></tr>';
+                } else if (reportData.type === 'transactions') {
+                    html += '<tr><th>Date</th><th>Part Number</th><th>Type</th><th>Change</th><th>User</th><th>Notes</th></tr>';
+                }
+                
+                html += '</thead><tbody>';
+                
+                reportData.data.forEach(row => {
+                    html += '<tr>';
+                    if (reportData.type === 'usage') {
+                        html += `<td>${row.part_number}</td><td>${row.vendor}</td><td>${row.product}</td><td>${row.category}</td><td>${row.total_used}</td><td>${row.transaction_count}</td>`;
+                    } else if (reportData.type === 'low_stock') {
+                        html += `<td>${row.part_number}</td><td>${row.vendor}</td><td>${row.product}</td><td>${row.quantity}</td><td>${row.min_quantity}</td><td>${row.min_quantity - row.quantity}</td>`;
+                    } else if (reportData.type === 'transactions') {
+                        html += `<td>${new Date(row.created_at).toLocaleDateString()}</td><td>${row.part_number}</td><td>${row.transaction_type}</td><td>${row.quantity_change}</td><td>${row.user_name}</td><td>${row.notes || ''}</td>`;
+                    }
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Dialog Functions
+        function showAddItemDialog() {
+            const vendor = prompt('Vendor:', '');
+            if (!vendor) return;
+            
+            const product = prompt('Product:', '');
+            if (!product) return;
+            
+            const partNumber = prompt('Part Number:', '');
+            if (!partNumber) return;
+            
+            const description = prompt('Description:', '');
+            const quantity = prompt('Initial Quantity:', '0');
+            const minQuantity = prompt('Minimum Quantity:', '0');
+            const category = prompt('Category:', 'Uncategorized');
+            const location = prompt('Location:', '');
+            
+            addInventoryItem({
+                vendor,
+                product,
+                part_number: partNumber,
+                description,
+                quantity: parseInt(quantity) || 0,
+                min_quantity: parseInt(minQuantity) || 0,
+                category,
+                location
+            });
+        }
+
+        async function addInventoryItem(item) {
+            try {
+                const response = await fetch('/api/inventory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(item)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to add inventory item');
+                }
+                
+                showAlert('success', 'Inventory item added successfully');
+                
+                // Reload inventory data
+                await loadInventoryData();
+                await loadAttentionItems();
+                if (currentPage === 'inventory') {
+                    searchInventoryPage();
+                }
+                
+            } catch (error) {
+                console.error('❌ Add inventory item error:', error);
+                showAlert('error', 'Error adding inventory item: ' + error.message);
+            }
+        }
+
+        function showBulkUpdateDialog() {
+            showAlert('info', 'Bulk update feature coming soon! Use the search and individual adjustment buttons for now.');
+        }
+
+        // Test function to verify inline editing
+        function testInlineEdit() {
+            console.log('Testing inline edit functionality...');
+            const firstEditableCell = document.querySelector('.editable');
+            if (firstEditableCell) {
+                console.log('Found editable cell:', firstEditableCell);
+                firstEditableCell.click();
+            } else {
+                console.log('No editable cells found');
+                showAlert('warning', 'No editable cells found. Make sure inventory data is loaded.');
+            }
+        }
+
+        // RECENT NOTES FUNCTIONS
+        async function loadRecentNotesPage() {
+            console.log('📋 Loading recent notes page...');
+            
+            try {
+                // Load employees for filter
+                const response = await fetch('/api/users', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    const employeeSelect = document.getElementById('notes-employee');
+                    const searchEmployeeSelect = document.getElementById('search-employee');
+                    
+                    if (employeeSelect) {
+                        employeeSelect.innerHTML = '<option value="">All Employees</option>' + 
+                            users.map(user => `<option value="${user.id}">${user.name}</option>`).join('');
+                    }
+                    
+                    if (searchEmployeeSelect) {
+                        searchEmployeeSelect.innerHTML = '<option value="">All Employees</option>' + 
+                            users.map(user => `<option value="${user.id}">${user.name}</option>`).join('');
+                    }
+                }
+                
+                // Load recent notes
+                loadRecentNotes();
+                
+            } catch (error) {
+                console.error('❌ Load recent notes page error:', error);
+            }
+        }
+
+        async function loadRecentNotes() {
+            console.log('📋 Loading recent notes...');
+            
+            try {
+                const days = document.getElementById('notes-days')?.value || '7';
+                const employeeId = document.getElementById('notes-employee')?.value || '';
+                const shiftType = document.getElementById('notes-shift-type')?.value || '';
+                
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - parseInt(days));
+                
+                const params = new URLSearchParams();
+                params.append('start_date', startDate.toISOString().split('T')[0]);
+                if (employeeId) params.append('user_id', employeeId);
+                if (shiftType) params.append('shift_type', shiftType);
+                params.append('limit', '50');
+                
+                showLoading('Loading recent notes...');
+                
+                const response = await fetch(`/api/shifts?${params}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load recent notes');
+                
+                const data = await response.json();
+                renderRecentNotes(data.shifts);
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Load recent notes error:', error);
+                showAlert('error', 'Error loading recent notes: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function renderRecentNotes(notes) {
+            const container = document.getElementById('recent-notes-list');
+            if (!container) return;
+            
+            if (notes.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #718096; padding: 40px;">No shift notes found for the selected criteria.</div>';
+                return;
+            }
+            
+            container.innerHTML = notes.map(note => {
+                const noteDate = new Date(note.shift_date).toLocaleDateString();
+                const createdTime = new Date(note.created_at).toLocaleTimeString();
+                
+                return `
+                    <div class="shift-note-card" data-note-id="${note.id}">
+                        <div class="shift-note-header">
+                            <h3 class="shift-note-title">${note.title}</h3>
+                            <div class="shift-note-meta">
+                                <div class="shift-note-employee">${note.created_by_name}</div>
+                                <div class="shift-note-date">${noteDate}</div>
+                                <div class="shift-note-type">${note.shift_type}</div>
+                                <div style="margin-top: 4px; font-size: 10px;">${createdTime}</div>
+                            </div>
+                        </div>
+                        
+                        ${note.content ? `
+                            <div class="shift-note-content">${note.content.length > 300 ? note.content.substring(0, 300) + '...' : note.content}</div>
+                        ` : '<div class="shift-note-content" style="color: #a0aec0; font-style: italic;">No shift notes content</div>'}
+                        
+                        <div class="shift-note-stats">
+                            <div class="shift-note-stat">
+                                <span class="icon">📝</span>
+                                <span>Tasks: ${note.task_count || 0}</span>
+                            </div>
+                            <div class="shift-note-stat">
+                                <span class="icon">✅</span>
+                                <span>Completed: ${note.completed_tasks || 0}</span>
+                            </div>
+                        </div>
+                        
+                        ${note.content && note.content.length > 300 ? `
+                            <button class="expand-btn" onclick="expandNote(${note.id})">Show Full Note</button>
+                        ` : ''}
+                        
+                        <div id="expanded-${note.id}" class="shift-note-expanded hidden"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function expandNote(noteId) {
+            console.log('📖 Expanding note:', noteId);
+            
+            try {
+                const response = await fetch(`/api/shifts/${noteId}/summary`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load note details');
+                
+                const data = await response.json();
+                const expandedDiv = document.getElementById(`expanded-${noteId}`);
+                
+                if (expandedDiv) {
+                    expandedDiv.innerHTML = `
+                        <div class="shift-note-content">${data.shift.content || 'No content'}</div>
+                        
+                        ${data.tasks && data.tasks.length > 0 ? `
+                            <div class="shift-note-tasks">
+                                <h5>📋 Tasks:</h5>
+                                <ul class="task-list">
+                                    ${data.tasks.map(task => `
+                                        <li class="task-item">
+                                            <span class="task-status-dot ${task.status}"></span>
+                                            <span class="task-text">${task.title}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${data.inventory_changes && data.inventory_changes.length > 0 ? `
+                            <div class="shift-note-tasks">
+                                <h5>📦 Inventory Changes:</h5>
+                                <ul class="task-list">
+                                    ${data.inventory_changes.map(change => `
+                                        <li class="task-item">
+                                            <span class="task-status-dot ${change.quantity_change > 0 ? 'completed' : 'active'}"></span>
+                                            <span class="task-text">${change.part_number}: ${change.quantity_change > 0 ? '+' : ''}${change.quantity_change}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        <button class="expand-btn" onclick="collapseNote(${noteId})">Hide Details</button>
+                    `;
+                    expandedDiv.classList.remove('hidden');
+                }
+                
+            } catch (error) {
+                console.error('❌ Expand note error:', error);
+                showAlert('error', 'Error loading note details');
+            }
+        }
+
+        function collapseNote(noteId) {
+            const expandedDiv = document.getElementById(`expanded-${noteId}`);
+            if (expandedDiv) {
+                expandedDiv.classList.add('hidden');
+            }
+        }
+
+        // SEARCH NOTES FUNCTIONS
+        function loadSearchNotesPage() {
+            console.log('🔍 Loading search notes page...');
+            
+            // Set default date range to last 30 days
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            
+            const startDateInput = document.getElementById('search-start-date');
+            const endDateInput = document.getElementById('search-end-date');
+            
+            if (startDateInput) startDateInput.value = startDate.toISOString().split('T')[0];
+            if (endDateInput) endDateInput.value = endDate;
+        }
+
+        async function performSearch() {
+            console.log('🔍 Performing search...');
+            
+            const query = document.getElementById('search-query')?.value.trim();
+            const startDate = document.getElementById('search-start-date')?.value;
+            const endDate = document.getElementById('search-end-date')?.value;
+            const employeeId = document.getElementById('search-employee')?.value;
+            
+            if (!query && !startDate && !endDate && !employeeId) {
+                showAlert('warning', 'Please enter search criteria');
+                return;
+            }
+            
+            try {
+                showLoading('Searching...');
+                
+                const params = new URLSearchParams();
+                if (query) params.append('query', query);
+                if (startDate) params.append('start_date', startDate);
+                if (endDate) params.append('end_date', endDate);
+                if (employeeId) params.append('user_id', employeeId);
+                params.append('limit', '100');
+                
+                const response = await fetch(`/api/search?${params}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Search failed');
+                
+                const data = await response.json();
+                renderSearchResults(data.results);
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Search error:', error);
+                showAlert('error', 'Search failed: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('search-results-list');
+            if (!container) return;
+            
+            if (results.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #718096; padding: 40px;">No results found for your search criteria.</div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 20px; padding: 10px; background: #f0fff4; border-radius: 6px;">
+                    <strong>Found ${results.length} result${results.length !== 1 ? 's' : ''}</strong>
+                </div>
+            ` + results.map(result => {
+                const noteDate = new Date(result.shift_date).toLocaleDateString();
+                const createdTime = new Date(result.created_at).toLocaleTimeString();
+                
+                return `
+                    <div class="shift-note-card">
+                        <div class="shift-note-header">
+                            <h3 class="shift-note-title">${result.title}</h3>
+                            <div class="shift-note-meta">
+                                <div class="shift-note-employee">${result.created_by_name}</div>
+                                <div class="shift-note-date">${noteDate}</div>
+                                <div style="margin-top: 4px; font-size: 10px;">${createdTime}</div>
+                            </div>
+                        </div>
+                        
+                        ${result.content ? `
+                            <div class="shift-note-content">${result.content}</div>
+                        ` : ''}
+                        
+                        ${result.task_titles ? `
+                            <div class="shift-note-summary">
+                                <strong>Tasks:</strong> ${result.task_titles}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="shift-note-stats">
+                            <div class="shift-note-stat">
+                                <span class="icon">📝</span>
+                                <span>Tasks: ${result.task_count || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Utility Functions
@@ -2417,33 +3349,6 @@
                 setTimeout(() => {
                     errorDiv.classList.add('hidden');
                 }, 5000);
-            }
-        }
-
-        // Placeholder functions for other pages
-        function loadReportsPage() {
-            const pageContent = document.getElementById('page-content');
-            if (pageContent) {
-                pageContent.innerHTML = `
-                    <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
-                        <h3>📈 Reports & Analytics</h3>
-                        <p style="color: #718096; margin: 20px 0;">Comprehensive reporting features coming soon...</p>
-                        <p style="color: #718096;">Use the search function and shift summaries for now.</p>
-                    </div>
-                `;
-            }
-        }
-
-        function loadUsersPage() {
-            const pageContent = document.getElementById('page-content');
-            if (pageContent) {
-                pageContent.innerHTML = `
-                    <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
-                        <h3>👥 User Management</h3>
-                        <p style="color: #718096; margin: 20px 0;">User management features coming soon...</p>
-                        <p style="color: #718096;">Contact your administrator for user changes.</p>
-                    </div>
-                `;
             }
         }
     </script>
