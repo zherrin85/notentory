@@ -8,7 +8,7 @@ async function initializeCompleteDatabase() {
     const connection = await mysql.createConnection({
         host: '127.0.0.1',
         user: 'shiftnotes_user',
-        password: 'Zd7010us',
+        password: 'PASSWORD',
         database: 'shift_inventory_system'
     });
     
