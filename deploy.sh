@@ -53,7 +53,7 @@ print_status "System packages updated"
 # Install required packages
 echo -e "${BLUE}📦 Installing required packages...${NC}"
 apt install -y curl wget gnupg2 software-properties-common apt-transport-https ca-certificates \
-               nginx mariadb-server mariadb-client ufw fail2ban logrotate git
+               nginx mariadb-server mariadb-client ufw fail2ban logrotate git build-essential
 
 print_status "Required packages installed"
 
@@ -118,6 +118,7 @@ fi
 echo -e "${BLUE}📦 Installing Node.js dependencies...${NC}"
 cd $APP_DIR
 sudo -u $APP_USER npm install --production
+sudo -u $APP_USER npm rebuild bcrypt
 print_status "Node.js dependencies installed"
 
 # Initialize database
