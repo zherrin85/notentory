@@ -1,0 +1,221 @@
+{
+  "name": "enhanced-shift-inventory-system",
+  "version": "4.0.0",
+  "description": "Enhanced IT Shift Notes & Inventory Management System with Task Board, Real-time Updates, File Attachments, Auto-save, and Comprehensive Inventory Management",
+  "main": "server.js",
+  "scripts": {
+    "start": "NODE_ENV=production node server.js",
+    "dev": "NODE_ENV=development nodemon server.js",
+    "init-db": "node init-database.js",
+    "test-db": "node -e \"require('./init-database.js')().then(() => console.log('✅ Database test passed')).catch(err => {console.error('❌ Database test failed:', err); process.exit(1);})\"",
+    "backup-db": "mysqldump -u shiftnotes_user -p'Zd7010us' shift_inventory_system > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "restore-db": "mysql -u shiftnotes_user -p'Zd7010us' shift_inventory_system",
+    "test": "echo \"Enhanced system ready for production testing\" && npm run test-db",
+    "health-check": "curl -f http://localhost:3000/api/dashboard || exit 1",
+    "logs": "journalctl -u shift-notes -f",
+    "restart": "sudo systemctl restart shift-notes",
+    "status": "sudo systemctl status shift-notes",
+    "stop": "sudo systemctl stop shift-notes",
+    "lint": "echo \"Linting not configured - add ESLint if needed\"",
+    "audit": "npm audit --audit-level=moderate",
+    "update-deps": "npm update && npm audit fix",
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "backup-full": "./backup.sh",
+    "setup": "npm install && npm run init-db",
+    "create-uploads-dir": "mkdir -p uploads && chmod 755 uploads",
+    "setup-production": "npm install --production && npm run create-uploads-dir && npm run init-db"
+  },
+  "keywords": [
+    "shift-notes",
+    "inventory-management",
+    "task-board",
+    "it-operations",
+    "real-time",
+    "drag-drop",
+    "audit-checklist",
+    "parts-tracking",
+    "enterprise",
+    "production-ready",
+    "debian",
+    "nginx",
+    "mariadb",
+    "mysql",
+    "nodejs",
+    "express",
+    "file-upload",
+    "auto-save",
+    "task-management",
+    "daily-notes",
+    "inventory-tracking",
+    "multi-user",
+    "responsive-design"
+  ],
+  "author": "IT Department",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.0",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "validator": "^13.11.0",
+    "sanitize-html": "^2.11.0",
+    "moment": "^2.29.4",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "sharp": "^0.32.6",
+    "mime-types": "^2.1.35",
+    "express-validator": "^7.0.1",
+    "express-session": "^1.17.3",
+    "connect-redis": "^7.1.0",
+    "redis": "^4.6.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "@types/node": "^20.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "internal-repository"
+  },
+  "config": {
+    "port": 3000,
+    "db_host": "127.0.0.1",
+    "db_user": "shiftnotes_user",
+    "db_name": "shift_inventory_system",
+    "max_file_size": "10485760",
+    "auto_save_interval": "30000"
+  },
+  "files": [
+    "server.js",
+    "init-database.js",
+    "public/",
+    "README.md",
+    "backup.sh",
+    "deploy.sh"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "preferGlobal": false,
+  "private": true,
+  "funding": {
+    "type": "internal",
+    "url": "https://internal-funding.company.com"
+  },
+  "bugs": {
+    "url": "https://internal-issues.company.com",
+    "email": "it-support@company.com"
+  },
+  "homepage": "https://internal-docs.company.com/shift-notes",
+  "contributors": [
+    {
+      "name": "IT Team",
+      "email": "it-team@company.com",
+      "role": "developer"
+    }
+  ],
+  "directories": {
+    "lib": "./lib",
+    "doc": "./docs",
+    "test": "./test",
+    "uploads": "./uploads"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "server.js",
+      "init-database.js",
+      "lib/",
+      "public/"
+    ],
+    "ext": "js,json,html,css",
+    "ignore": [
+      "node_modules/",
+      "uploads/",
+      "logs/",
+      "backups/",
+      "coverage/"
+    ],
+    "delay": 2000,
+    "env": {
+      "NODE_ENV": "development"
+    }
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "es2021": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "ecmaVersion": 12,
+      "sourceType": "module"
+    },
+    "rules": {
+      "no-console": "warn",
+      "no-unused-vars": "error",
+      "semi": ["error", "always"],
+      "quotes": ["error", "single"]
+    }
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "**/*.js",
+      "!node_modules/**",
+      "!coverage/**",
+      "!uploads/**"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/?(*.)+(spec|test).js"
+    ]
+  },
+  "security": {
+    "allowedHosts": [
+      "localhost",
+      "127.0.0.1"
+    ],
+    "trustedProxies": [
+      "127.0.0.1",
+      "::1"
+    ]
+  },
+  "performance": {
+    "maxRequestSize": "50mb",
+    "connectionTimeout": 60000,
+    "keepAliveTimeout": 5000
+  },
+  "features": {
+    "fileUploads": true,
+    "autoSave": true,
+    "realTimeUpdates": true,
+    "taskManagement": true,
+    "inventoryTracking": true,
+    "dailyAudits": true,
+    "searchAndFilter": true,
+    "reportGeneration": true,
+    "userRoles": true,
+    "activityLogging": true
+  }
+}
