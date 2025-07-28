@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# IT Shift Notes & Inventory System - Deployment Script for Debian
+# Notentory - Shift Notes & Inventory System - Deployment Script for Debian
 # This script sets up the complete system on a fresh Debian installation
 # Run as root: sudo ./deploy.sh
 
@@ -19,10 +19,10 @@ APP_DIR="/opt/shift-notes"
 APP_USER="shiftnotes"
 DB_NAME="shift_inventory_system"
 DB_USER="shiftnotes_user"
-DB_PASSWORD="Zd7010us"  # Change this in production!
+DB_PASSWORD="your_secure_database_password_here"  # Change this in production!
 NODE_VERSION="18"
 
-echo -e "${BLUE}🚀 IT Shift Notes & Inventory System Deployment Script${NC}"
+echo -e "${BLUE}🚀 Notentory - Shift Notes & Inventory System Deployment Script${NC}"
 echo -e "${BLUE}=================================================${NC}"
 echo ""
 
@@ -105,13 +105,13 @@ echo -e "${BLUE}📂 Copying application files...${NC}"
 if [ -f "server.js" ]; then
     cp server.js $APP_DIR/
     cp package.json $APP_DIR/
-    cp init-database.js $APP_DIR/
+    cp database-init.js $APP_DIR/
     cp -r public $APP_DIR/
     chown -R $APP_USER:$APP_USER $APP_DIR
     print_status "Application files copied"
 else
     print_warning "Application files not found in current directory"
-    print_warning "Please copy server.js, package.json, init-database.js, and public/ to $APP_DIR manually"
+    print_warning "Please copy server.js, package.json, database-init.js, and public/ to $APP_DIR manually"
 fi
 
 # Install Node.js dependencies
@@ -122,14 +122,14 @@ print_status "Node.js dependencies installed"
 
 # Initialize database
 echo -e "${BLUE}🗄️  Initializing database...${NC}"
-sudo -u $APP_USER node init-database.js
+sudo -u $APP_USER node database-init.js
 print_status "Database initialized with sample data"
 
 # Create systemd service
 echo -e "${BLUE}⚙️  Creating systemd service...${NC}"
 cat > /etc/systemd/system/$APP_NAME.service << EOF
 [Unit]
-Description=IT Shift Notes & Inventory Management System
+Description=Notentory - Shift Notes & Inventory Management System
 Documentation=https://github.com/your-company/shift-notes
 After=network.target mariadb.service
 Wants=mariadb.service
@@ -369,12 +369,12 @@ echo -e "${BLUE}💾 Creating backup script...${NC}"
 cat > $APP_DIR/backup.sh << 'EOF'
 #!/bin/bash
 
-# Backup script for IT Shift Notes & Inventory System
+# Backup script for Notentory - Shift Notes & Inventory System
 BACKUP_DIR="/opt/shift-notes/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 DB_NAME="shift_inventory_system"
 DB_USER="shiftnotes_user"
-DB_PASSWORD="Zd7010us"
+DB_PASSWORD="your_secure_database_password_here"
 
 # Create database backup
 mysqldump -u$DB_USER -p$DB_PASSWORD $DB_NAME > $BACKUP_DIR/database_backup_$DATE.sql
@@ -438,9 +438,9 @@ echo "   Log Files: $APP_DIR/logs/ and /var/log/nginx/"
 echo "   Service Status: systemctl status $APP_NAME"
 echo ""
 echo -e "${BLUE}🔑 Default Login Credentials:${NC}"
-echo "   Admin: admin@company.com / admin123"
-echo "   Manager: sarah@company.com / password123"
-echo "   Technician: john@company.com / password123"
+echo "   Admin: admin@company.com / your_admin_password_here"
+echo "   Manager: sarah@company.com / your_manager_password_here"
+echo "   Technician: john@company.com / your_technician_password_here"
 echo ""
 echo -e "${BLUE}⚙️  Management Commands:${NC}"
 echo "   Start service: systemctl start $APP_NAME"
@@ -456,4 +456,4 @@ echo "   3. Configure SSL/TLS certificates for HTTPS"
 echo "   4. Regularly update the system and dependencies"
 echo "   5. Monitor logs for suspicious activity"
 echo ""
-echo -e "${GREEN}✅ Your IT Shift Notes & Inventory System is ready for use!${NC}"
+echo -e "${GREEN}✅ Your Notentory - Shift Notes & Inventory System is ready for use!${NC}"

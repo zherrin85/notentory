@@ -1,4 +1,4 @@
-// Enhanced IT Shift Notes & Inventory Management Backend - Complete Version
+// Enhanced Notentory - Shift Notes & Inventory Management Backend - Complete Version
 const express = require('express');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
@@ -6,18 +6,63 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsPromises = require('fs').promises;
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here-change-in-production';
 
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        // Generate unique filename with timestamp
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+        files: 5 // Max 5 files per request
+    },
+    fileFilter: function (req, file, cb) {
+        // Allow images, PDFs, and common document types
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+        ];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only images, PDFs, and documents are allowed.'), false);
+        }
+    }
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
+app.use('/uploads', express.static(uploadsDir)); // Serve uploaded files
 
 // Database connection with proper error handling
 const pool = mysql.createPool({
@@ -88,8 +133,32 @@ const logActivity = async (userId, action, tableName, recordId, details = null, 
             [userId, action, tableName, recordId, JSON.stringify(details), ipAddress]
         );
     } catch (error) {
-        console.error('Activity logging error:', error);
+        // Don't log activity logging errors to avoid infinite loops
+        // Just silently fail for activity logging
     }
+};
+
+// Centralized error handling
+const handleError = (error, operation, res) => {
+    console.error(`❌ ${operation} error:`, error);
+    
+    // Provide user-friendly error messages
+    let userMessage = 'An unexpected error occurred';
+    
+    if (error.code === 'ER_DUP_ENTRY') {
+        userMessage = 'This record already exists';
+    } else if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+        userMessage = 'Referenced record not found';
+    } else if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+        userMessage = 'Cannot delete: record is in use';
+    } else if (error.message) {
+        userMessage = error.message;
+    }
+    
+    res.status(500).json({ 
+        message: userMessage,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
 };
 
 // Inventory update helper function
@@ -185,8 +254,7 @@ app.post('/api/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error' });
+        handleError(error, 'Login', res);
     }
 });
 
@@ -199,6 +267,22 @@ app.get('/api/users', authenticateToken, async (req, res) => {
         res.json(users);
     } catch (error) {
         console.error('Get users error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get user by ID
+app.get('/api/users/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        const [users] = await pool.execute('SELECT id, name, email, role, active, created_at FROM users WHERE id = ?', [id]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(users[0]);
+    } catch (error) {
+        console.error('Get user error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -229,8 +313,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ message: 'Email already exists' });
         }
-        console.error('Create user error:', error);
-        res.status(500).json({ message: 'Server error' });
+        handleError(error, 'Create user', res);
     }
 });
 
@@ -266,8 +349,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ message: 'Email already exists' });
         }
-        console.error('Update user error:', error);
-        res.status(500).json({ message: 'Server error' });
+        handleError(error, 'Update user', res);
     }
 });
 
@@ -291,6 +373,34 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
         res.json({ message: 'User deactivated successfully' });
     } catch (error) {
         console.error('Delete user error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Toggle user status
+app.put('/api/users/:id/toggle-status', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    
+    // Only admin/manager can toggle user status
+    if (!['admin', 'manager'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    try {
+        // Get current status
+        const [users] = await pool.execute('SELECT active FROM users WHERE id = ?', [id]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const newStatus = !users[0].active;
+        await pool.execute('UPDATE users SET active = ? WHERE id = ?', [newStatus, id]);
+        
+        await logActivity(req.user.id, 'toggle_user_status', 'user', id, { active: newStatus }, req.ip);
+        
+        res.json({ message: `User ${newStatus ? 'enabled' : 'disabled'} successfully` });
+    } catch (error) {
+        console.error('Toggle user status error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -333,13 +443,13 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 
 // ENHANCED SHIFT NOTES ROUTES
 
-// Get or create today's shift
+// Get today's shift (if it exists)
 app.get('/api/shifts/current', authenticateToken, async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
         
-        // Get today's shift or create one
-        let [shifts] = await pool.execute(
+        // Get today's shift if it exists
+        const [shifts] = await pool.execute(
             `SELECT sn.*, u.name as created_by_name 
              FROM shift_notes sn 
              LEFT JOIN users u ON sn.user_id = u.id 
@@ -352,22 +462,15 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
         let shift;
         
         if (shifts.length === 0) {
-            // Create new shift for today
-            const [result] = await pool.execute(
-                'INSERT INTO shift_notes (title, date, shift_type, user_id) VALUES (?, ?, ?, ?)',
-                [`${req.user.name}'s Shift - ${today}`, today, 'day', req.user.id]
-            );
-            shiftId = result.insertId;
-            
-            // Get the created shift
-            [shifts] = await pool.execute(
-                `SELECT sn.*, u.name as created_by_name 
-                 FROM shift_notes sn 
-                 LEFT JOIN users u ON sn.user_id = u.id 
-                 WHERE sn.id = ?`,
-                [shiftId]
-            );
-            shift = shifts[0];
+            // No shift exists for today - return null
+            res.json({
+                shift: null,
+                shift_id: null,
+                tasks: [],
+                audits: null,
+                inventory_changes: []
+            });
+            return;
         } else {
             shift = shifts[0];
             shiftId = shift.id;
@@ -379,11 +482,21 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
             [shiftId]
         );
         
-        // Get daily audits status (placeholder for now)
-        const audits = [];
+        // Get daily audits status
+        const [audits] = await pool.execute(`
+            SELECT sn.completed_audits
+            FROM shift_notes sn
+            WHERE sn.id = ?
+        `, [shiftId]);
         
-        // Get inventory transactions for this shift (placeholder for now)
-        const inventoryChanges = [];
+        // Get inventory transactions for this shift
+        const [inventoryChanges] = await pool.execute(`
+            SELECT it.*, i.part_number, i.product_name
+            FROM inventory_transactions it
+            LEFT JOIN inventory i ON it.inventory_id = i.id
+            WHERE it.shift_note_id = ?
+            ORDER BY it.created_at DESC
+        `, [shiftId]);
         
         res.json({
             shift: shift,
@@ -461,7 +574,7 @@ app.post('/api/shifts', authenticateToken, async (req, res) => {
             for (const task of tasks) {
                 // Ensure status is a valid enum value
                 let status = task.status || 'in_progress';
-                if (!['pending', 'in_progress', 'completed'].includes(status)) {
+                if (!['in_progress', 'completed'].includes(status)) {
                     status = 'in_progress';
                 }
                 
@@ -901,8 +1014,7 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
         // Get task statistics
         const [taskStats] = await pool.execute(`
             SELECT 
-                COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as active_tasks,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as blocked_tasks,
+                COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_tasks,
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_tasks,
                 COUNT(*) as total_tasks
             FROM tasks t
@@ -910,25 +1022,38 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
             WHERE DATE(sn.date) = CURDATE()
         `);
         
-        // Get recent activity (placeholder for now)
-        const recentActivity = [];
+        // Get recent activity
+        const [recentActivity] = await pool.execute(`
+            SELECT al.*, u.name as user_name
+            FROM activity_log al
+            LEFT JOIN users u ON al.user_id = u.id
+            ORDER BY al.created_at DESC
+            LIMIT 10
+        `);
         
         // Get low stock items
         const [lowStockItems] = await pool.execute(`
             SELECT part_number, product_name, quantity
             FROM inventory 
-            WHERE quantity <= 0
+            WHERE quantity <= 5
             ORDER BY quantity ASC
             LIMIT 10
         `);
         
-        // Get recent inventory transactions (placeholder for now)
-        const recentTransactions = [];
+        // Get recent inventory transactions
+        const [recentTransactions] = await pool.execute(`
+            SELECT it.*, i.part_number, i.product_name, u.name as user_name
+            FROM inventory_transactions it
+            LEFT JOIN inventory i ON it.inventory_id = i.id
+            LEFT JOIN users u ON it.user_id = u.id
+            ORDER BY it.created_at DESC
+            LIMIT 10
+        `);
         
         res.json({
             inventory: inventoryStats[0],
             notes: notesStats[0],
-            tasks: taskStats[0] || { active_tasks: 0, blocked_tasks: 0, completed_tasks: 0, total_tasks: 0 },
+            tasks: taskStats[0] || { in_progress_tasks: 0, completed_tasks: 0, total_tasks: 0 },
             recent_activity: recentActivity,
             low_stock_items: lowStockItems,
             recent_transactions: recentTransactions
@@ -1027,8 +1152,14 @@ app.get('/api/shifts/:id/summary', authenticateToken, async (req, res) => {
             [id]
         );
         
-        // Get inventory changes for this shift (placeholder for now)
-        const inventoryChanges = [];
+        // Get inventory changes for this shift
+        const [inventoryChanges] = await pool.execute(`
+            SELECT it.*, i.part_number, i.product_name, i.vendor
+            FROM inventory_transactions it
+            LEFT JOIN inventory i ON it.inventory_id = i.id
+            WHERE it.shift_note_id = ?
+            ORDER BY it.created_at DESC
+        `, [id]);
         
         res.json({
             shift,
@@ -1098,10 +1229,10 @@ app.get('/api/notes/recent', authenticateToken, async (req, res) => {
     try {
         let query = `
             SELECT sn.*, u.name as created_by_name,
-                   COUNT(DISTINCT st.id) as task_count
+                   COUNT(DISTINCT t.id) as task_count
             FROM shift_notes sn
             LEFT JOIN users u ON sn.user_id = u.id
-            LEFT JOIN shift_tasks st ON sn.id = st.shift_id
+            LEFT JOIN tasks t ON sn.id = t.shift_note_id
             WHERE sn.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         `;
         let params = [parseInt(days)];
@@ -1268,13 +1399,13 @@ app.get('/api/backup/history', authenticateToken, async (req, res) => {
     
     try {
         const backupDir = path.join(__dirname, 'backups');
-        const files = await fs.readdir(backupDir);
+        const files = await fsPromises.readdir(backupDir);
         
         const backups = [];
         for (const file of files) {
             if (file.endsWith('.sql') || file.endsWith('.tar.gz')) {
                 const filePath = path.join(backupDir, file);
-                const stats = await fs.stat(filePath);
+                const stats = await fsPromises.stat(filePath);
                 
                 backups.push({
                     filename: file,
@@ -1303,7 +1434,7 @@ app.get('/api/backup/status', authenticateToken, async (req, res) => {
     
     try {
         const backupDir = path.join(__dirname, 'backups');
-        const files = await fs.readdir(backupDir);
+        const files = await fsPromises.readdir(backupDir);
         
         // Count backups by type
         const dbBackups = files.filter(f => f.endsWith('.sql')).length;
@@ -1319,8 +1450,8 @@ app.get('/api/backup/status', authenticateToken, async (req, res) => {
             
             const stats = await Promise.all(
                 backupFiles.map(async file => {
-                    const stat = await fs.stat(file.path);
-                    return { ...file, created_at: stat.birthtime };
+                    const stat = await fsPromises.stat(file.path);
+                    return { ...file, created_at: stat.mtime };
                 })
             );
             
@@ -1345,7 +1476,7 @@ app.get('/api/backup/status', authenticateToken, async (req, res) => {
         for (const file of files) {
             if (file.endsWith('.sql') || file.endsWith('.tar.gz')) {
                 const filePath = path.join(backupDir, file);
-                const stats = await fs.stat(filePath);
+                const stats = await fsPromises.stat(filePath);
                 totalBackupSize += stats.size;
             }
         }
@@ -1386,7 +1517,7 @@ app.get('/api/backup/download/:filename', authenticateToken, async (req, res) =>
         }
         
         // Check if file exists
-        await fs.access(filePath);
+        await fsPromises.access(filePath);
         
         res.download(filePath);
         
@@ -1419,7 +1550,7 @@ app.post('/api/backup/restore', authenticateToken, async (req, res) => {
         }
         
         // Check if file exists
-        await fs.access(filePath);
+        await fsPromises.access(filePath);
         
         const { exec } = require('child_process');
         const util = require('util');
@@ -1456,8 +1587,7 @@ app.post('/api/backup/settings', authenticateToken, async (req, res) => {
     const { enabled, frequency, time, retention_days } = req.body;
     
     try {
-        // In a real implementation, you'd save these to a settings table
-        // For now, we'll just validate and return success
+        // Validate inputs
         if (typeof enabled !== 'boolean') {
             return res.status(400).json({ message: 'Enabled must be a boolean' });
         }
@@ -1474,9 +1604,20 @@ app.post('/api/backup/settings', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: 'Retention days must be between 1 and 365' });
         }
         
-        // TODO: Save to settings table
-        // await pool.execute('INSERT INTO settings (key, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?', 
-        //     ['backup_enabled', JSON.stringify(enabled), JSON.stringify(enabled)]);
+        // Save to settings table
+        const settings = [
+            ['backup_enabled', enabled.toString()],
+            ['backup_frequency', frequency],
+            ['backup_time', time],
+            ['backup_retention_days', retention_days.toString()]
+        ];
+        
+        for (const [key, value] of settings) {
+            await pool.execute(
+                'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?',
+                [key, value, value]
+            );
+        }
         
         await logActivity(req.user.id, 'update_backup_settings', 'settings', null, { enabled, frequency, time, retention_days }, req.ip);
         
@@ -1487,6 +1628,136 @@ app.post('/api/backup/settings', authenticateToken, async (req, res) => {
     }
 });
 
+// File upload endpoints
+app.post('/api/upload', authenticateToken, upload.array('files', 5), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
+        }
+
+        const { shift_note_id, task_id } = req.body;
+        const uploadedFiles = [];
+
+        for (const file of req.files) {
+            // Save file info to database
+            const [result] = await pool.execute(
+                'INSERT INTO file_attachments (shift_note_id, task_id, filename, original_name, file_path, file_size, mime_type, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                    shift_note_id || null,
+                    task_id || null,
+                    file.filename,
+                    file.originalname,
+                    file.path,
+                    file.size,
+                    file.mimetype,
+                    req.user.id
+                ]
+            );
+
+            uploadedFiles.push({
+                id: result.insertId,
+                filename: file.filename,
+                original_name: file.originalname,
+                file_size: file.size,
+                mime_type: file.mimetype,
+                url: `/uploads/${file.filename}`
+            });
+        }
+
+        await logActivity(req.user.id, 'upload_files', 'file_attachments', null, { 
+            count: uploadedFiles.length, 
+            files: uploadedFiles.map(f => f.original_name) 
+        }, req.ip);
+
+        res.json({ 
+            message: `${uploadedFiles.length} file(s) uploaded successfully`,
+            files: uploadedFiles
+        });
+    } catch (error) {
+        console.error('File upload error:', error);
+        res.status(500).json({ message: 'Upload failed: ' + error.message });
+    }
+});
+
+// Get files for a shift note or task
+app.get('/api/files', authenticateToken, async (req, res) => {
+    try {
+        const { shift_note_id, task_id } = req.query;
+        
+        let query = 'SELECT * FROM file_attachments WHERE 1=1';
+        let params = [];
+
+        if (shift_note_id) {
+            query += ' AND shift_note_id = ?';
+            params.push(shift_note_id);
+        }
+
+        if (task_id) {
+            query += ' AND task_id = ?';
+            params.push(task_id);
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const [files] = await pool.execute(query, params);
+
+        // Add full URLs to files
+        const filesWithUrls = files.map(file => ({
+            ...file,
+            url: `/uploads/${file.filename}`
+        }));
+
+        res.json(filesWithUrls);
+    } catch (error) {
+        console.error('Get files error:', error);
+        res.status(500).json({ message: 'Failed to get files' });
+    }
+});
+
+// Delete a file
+app.delete('/api/files/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get file info
+        const [files] = await pool.execute(
+            'SELECT * FROM file_attachments WHERE id = ?',
+            [id]
+        );
+
+        if (files.length === 0) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+
+        const file = files[0];
+
+        // Check permissions (user can delete their own files or admin/manager)
+        if (file.uploaded_by !== req.user.id && !['admin', 'manager'].includes(req.user.role)) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        // Delete physical file
+        try {
+            await fsPromises.unlink(file.file_path);
+        } catch (unlinkError) {
+            console.error('Error deleting physical file:', unlinkError);
+            // Continue with database deletion even if file doesn't exist
+        }
+
+        // Delete from database
+        await pool.execute('DELETE FROM file_attachments WHERE id = ?', [id]);
+
+        await logActivity(req.user.id, 'delete_file', 'file_attachments', id, { 
+            filename: file.original_name 
+        }, req.ip);
+
+        res.json({ message: 'File deleted successfully' });
+    } catch (error) {
+        console.error('Delete file error:', error);
+        res.status(500).json({ message: 'Failed to delete file' });
+    }
+});
+
 // Get backup settings
 app.get('/api/backup/settings', authenticateToken, async (req, res) => {
     if (!['admin', 'manager'].includes(req.user.role)) {
@@ -1494,13 +1765,23 @@ app.get('/api/backup/settings', authenticateToken, async (req, res) => {
     }
     
     try {
-        // In a real implementation, you'd get these from a settings table
-        // For now, return default values
+        // Get settings from database
+        const [settings] = await pool.execute(
+            'SELECT setting_key, setting_value FROM settings WHERE setting_key IN (?, ?, ?, ?)',
+            ['backup_enabled', 'backup_frequency', 'backup_time', 'backup_retention_days']
+        );
+        
+        // Convert to object format
+        const settingsObj = {};
+        settings.forEach(setting => {
+            settingsObj[setting.setting_key] = setting.setting_value;
+        });
+        
         res.json({
-            enabled: true,
-            frequency: 'daily',
-            time: '02:00',
-            retention_days: 30
+            enabled: settingsObj.backup_enabled === 'true',
+            frequency: settingsObj.backup_frequency || 'daily',
+            time: settingsObj.backup_time || '02:00',
+            retention_days: parseInt(settingsObj.backup_retention_days) || 30
         });
     } catch (error) {
         console.error('Get backup settings error:', error);
@@ -1521,7 +1802,7 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, async () => {
-    console.log(`🚀 Enhanced Shift Notes & Inventory Server running on port ${PORT}`);
+    console.log(`🚀 Notentory - Shift Notes & Inventory Server running on port ${PORT}`);
     
     const dbConnected = await testDatabaseConnection();
     if (!dbConnected) {

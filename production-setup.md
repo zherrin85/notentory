@@ -214,7 +214,7 @@ sudo nano /etc/systemd/system/shift-notes.service
 Add this configuration:
 ```ini
 [Unit]
-Description=Shift Notes Application
+Description=Notentory - Shift Notes Application
 After=network.target
 
 [Service]

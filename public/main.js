@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     populateDailyAudits();
     setCurrentDate();
-    loadCurrentShift();
     
     if (authToken) {
         validateTokenAndShowApp();
@@ -144,7 +143,7 @@ async function selectInventoryItem(element, itemId) {
             <div style="display: none;" data-product-name="${item.product_name}"></div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label style="font-size: 12px; color: #6b7280;">Qty:</label>
-                <input type="number" value="1" min="1" max="${item.quantity}" style="width: 60px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px;" onchange="updateInventoryQuantity(this, ${item.id})">
+                <input type="number" value="1" min="1" max="${item.quantity}" style="width: 60px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px;">
                 <button onclick="removeInventoryItem(this)" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;">✕</button>
             </div>
         `;
@@ -184,11 +183,18 @@ async function loadCurrentShift() {
         });
         if (response.ok) {
             const shiftData = await response.json();
+            if (shiftData.shift) {
+                currentShiftId = shiftData.shift.id;
+            } else {
+                currentShiftId = null;
+            }
             populateShiftData(shiftData);
         } else {
+            currentShiftId = null;
             document.getElementById('page-content').innerHTML = '<div style="color:#991b1b; padding:32px;">No current shift found or you do not have access.</div>';
         }
     } catch (error) {
+        currentShiftId = null;
         document.getElementById('page-content').innerHTML = '<div style="color:#991b1b; padding:32px;">Error loading current shift.</div>';
     }
 }
@@ -392,19 +398,51 @@ async function updateInventoryQuantity(input, itemId) {
     }
     
     try {
-        const response = await fetch(`/api/inventory/${itemId}`, {
-            method: 'PUT',
+        // Get the current inventory item to calculate the change
+        const itemResponse = await fetch(`/api/inventory/${itemId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!itemResponse.ok) {
+            throw new Error('Failed to get current inventory item');
+        }
+        
+        const currentItem = await itemResponse.json();
+        const currentQuantity = currentItem.quantity;
+        const quantityChange = quantity - currentQuantity;
+        
+        if (quantityChange === 0) {
+            return; // No change needed
+        }
+        
+        // Use the proper adjustment endpoint
+        const response = await fetch(`/api/inventory/${currentItem.part_number}/adjust`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ quantity: quantity })
+            body: JSON.stringify({
+                action: quantityChange > 0 ? 'add' : 'remove',
+                quantity_change: Math.abs(quantityChange),
+                notes: 'Manual quantity adjustment'
+            })
         });
         
         if (response.ok) {
-            showAlert('success', 'Inventory quantity updated successfully');
-            } else {
-            throw new Error('Failed to update inventory quantity');
+            const result = await response.json();
+            showAlert('success', `Inventory updated: ${result.old_quantity} → ${result.new_quantity}`);
+            
+            // Update the max attribute for future validations
+            input.max = result.new_quantity;
+            
+            // Refresh the inventory page if we're on it
+            if (currentPage === 'inventory') {
+                loadInventoryPage();
+            }
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update inventory quantity');
         }
     } catch (error) {
         console.error('Error updating inventory:', error);
@@ -429,21 +467,116 @@ function removeInventoryItem(button) {
     showAlert('info', 'Item removed from task');
 }
 
-function triggerFileUpload(uploadArea) {
+async function triggerFileUpload(uploadArea) {
     const fileInput = uploadArea.querySelector('input[type="file"]');
     if (fileInput) {
         fileInput.click();
         
-        fileInput.onchange = function(e) {
+        fileInput.onchange = async function(e) {
             if (e.target.files.length > 0) {
-                const fileName = e.target.files[0].name;
-                const fileSize = (e.target.files[0].size / 1024 / 1024).toFixed(2);
-                uploadArea.innerHTML = `✅<span style="display: block; font-size: 13px; color: #10b981; margin-top: 8px;">${fileName}<br>(${fileSize} MB)</span>`;
-                uploadArea.style.borderColor = '#10b981';
-                uploadArea.style.background = '#ecfdf5';
-                showAlert('success', `File "${fileName}" uploaded successfully!`);
+                const file = e.target.files[0];
+                const fileName = file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                
+                // Show loading state
+                uploadArea.innerHTML = `⏳<span style="display: block; font-size: 13px; color: #6b7280; margin-top: 8px;">Uploading ${fileName}...</span>`;
+                uploadArea.style.borderColor = '#f59e0b';
+                uploadArea.style.background = '#fef3c7';
+                
+                try {
+                    // Create FormData for file upload
+                    const formData = new FormData();
+                    formData.append('files', file);
+                    
+                    // Add shift note ID if we're on the shift notes page
+                    if (currentShiftId) {
+                        formData.append('shift_note_id', currentShiftId);
+                    }
+                    
+                    // Upload file
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        
+                        // Update upload area with success state
+                        uploadArea.innerHTML = `
+                            ✅<span style="display: block; font-size: 13px; color: #10b981; margin-top: 8px;">
+                                ${fileName}<br>(${fileSize} MB)
+                            </span>
+                            <button onclick="deleteFile(${result.files[0].id}, this)" 
+                                    style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-top: 4px; cursor: pointer;">
+                                Delete
+                            </button>
+                        `;
+                        uploadArea.style.borderColor = '#10b981';
+                        uploadArea.style.background = '#ecfdf5';
+                        
+                        showAlert('success', `File "${fileName}" uploaded successfully!`);
+                        
+                        // Store file info for later use
+                        uploadArea.dataset.fileId = result.files[0].id;
+                        uploadArea.dataset.fileName = fileName;
+                    } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Upload failed');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    
+                    // Reset upload area
+                    uploadArea.innerHTML = `
+                        📸<span>Upload Image</span>
+                        <input type="file" accept="image/*,application/pdf,.pdf" style="display: none;">
+                    `;
+                    uploadArea.style.borderColor = '#d1d5db';
+                    uploadArea.style.background = '#f9fafb';
+                    
+                    showAlert('error', `Upload failed: ${error.message}`);
+                }
             }
         };
+    }
+}
+
+async function deleteFile(fileId, button) {
+    if (!confirm('Are you sure you want to delete this file?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/files/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const uploadArea = button.closest('.upload-area');
+            uploadArea.innerHTML = `
+                📸<span>Upload Image</span>
+                <input type="file" accept="image/*,application/pdf,.pdf" style="display: none;">
+            `;
+            uploadArea.style.borderColor = '#d1d5db';
+            uploadArea.style.background = '#f9fafb';
+            delete uploadArea.dataset.fileId;
+            delete uploadArea.dataset.fileName;
+            
+            showAlert('success', 'File deleted successfully');
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Delete failed');
+        }
+    } catch (error) {
+        console.error('Delete file error:', error);
+        showAlert('error', `Delete failed: ${error.message}`);
     }
 }
 
@@ -456,9 +589,8 @@ function addAdditionalTask() {
         <div class="task-header">
             <input type="text" class="task-title" placeholder="Task title" />
             <select class="task-status">
-                <option value="active">Active</option>
+                <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
-                <option value="blocked">Blocked</option>
             </select>
         </div>
         
@@ -781,7 +913,7 @@ async function viewShiftDetails(shiftId) {
                                                 <span style="background: ${task.status === 'completed' ? '#dcfce7' : task.status === 'in_progress' ? '#fef3c7' : '#f3f4f6'}; 
                                                            color: ${task.status === 'completed' ? '#166534' : task.status === 'in_progress' ? '#92400e' : '#374151'}; 
                                                            padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; text-transform: capitalize;">
-                                                    ${task.status || 'pending'}
+                                                    ${task.status === 'in_progress' ? 'In Progress' : task.status === 'completed' ? 'Completed' : 'In Progress'}
                                                 </span>
                                             </div>
                                             
@@ -838,8 +970,11 @@ async function viewShiftDetails(shiftId) {
                             <div style="display: grid; gap: 8px;">
                                 ${data.inventory_changes.map(item => `
                                     <div style="background: #f8fafc; border-radius: 6px; padding: 12px; font-size: 14px;">
-                                        <strong>${item.product || 'Unknown Item'}</strong> - 
-                                        Quantity: ${item.quantity_change > 0 ? '+' : ''}${item.quantity_change}
+                                        <strong>${item.product_name || item.part_number || 'Unknown Item'}</strong> - 
+                                        <span style="color: ${item.quantity_change > 0 ? '#059669' : '#dc2626'}; font-weight: 500;">
+                                            ${item.quantity_change > 0 ? '+' : ''}${item.quantity_change}
+                                        </span>
+                                        ${item.reason ? `<br><small style="color: #6b7280;">${item.reason}</small>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -1199,19 +1334,6 @@ async function handleAddUser(e) {
 }
 
 async function editUser(userId) {
-    // For now, show a comprehensive edit modal (replace with real API call when backend is connected)
-    const user = {
-        id: userId,
-        name: 'John Smith', // Mock data - replace with real user data
-        email: 'john.smith@company.com',
-        role: 'admin',
-        active: true
-    };
-    
-    showEditUserModal(user);
-    
-    // Uncomment when connecting to real backend:
-    /*
     try {
         showLoading('Loading user details...');
         
@@ -1232,7 +1354,6 @@ async function editUser(userId) {
         console.error('Error loading user:', error);
         showAlert('error', 'Error loading user: ' + error.message);
     }
-    */
 }
 
 function showEditUserModal(user) {
@@ -1329,14 +1450,6 @@ async function handleEditUser(e) {
     try {
         showLoading('Updating user...');
         
-        // For now, show success message (replace with real API call when backend is connected)
-        hideLoading();
-        showAlert('success', `User ${userData.name} updated successfully!`);
-        closeEditUserModal();
-        loadUsersPage(); // Refresh the users list
-        
-        // Uncomment when connecting to real backend:
-        /*
         const response = await fetch(`/api/users/${userData.id}`, {
             method: 'PUT',
             headers: {
@@ -1356,7 +1469,6 @@ async function handleEditUser(e) {
             const error = await response.json();
             throw new Error(error.message || 'Failed to update user');
         }
-        */
         
     } catch (error) {
         hideLoading();
@@ -1369,13 +1481,6 @@ async function toggleUserStatus(userId, currentStatus) {
     try {
         showLoading('Updating user status...');
         
-        // For now, show success message (replace with real API call when backend is connected)
-        hideLoading();
-        showAlert('success', `User ${currentStatus ? 'disabled' : 'enabled'} successfully!`);
-        loadUsersPage(); // Refresh the users list
-        
-        // Uncomment when connecting to real backend:
-        /*
         const response = await fetch(`/api/users/${userId}/toggle-status`, {
             method: 'PUT',
             headers: {
@@ -1394,7 +1499,6 @@ async function toggleUserStatus(userId, currentStatus) {
             const error = await response.json();
             throw new Error(error.message || 'Failed to update user status');
         }
-        */
         
     } catch (error) {
         hideLoading();
@@ -1411,13 +1515,6 @@ async function deleteUser(userId) {
     try {
         showLoading('Deleting user...');
         
-        // For now, show success message (replace with real API call when backend is connected)
-        hideLoading();
-        showAlert('success', 'User deleted successfully!');
-        loadUsersPage(); // Refresh the users list
-        
-        // Uncomment when connecting to real backend:
-        /*
         const response = await fetch(`/api/users/${userId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${authToken}` }
@@ -1432,7 +1529,6 @@ async function deleteUser(userId) {
             const error = await response.json();
             throw new Error(error.message || 'Failed to delete user');
         }
-        */
         
     } catch (error) {
         hideLoading();
@@ -1631,7 +1727,6 @@ function validateTokenAndShowApp() {
                 if (response.ok) {
                     console.log('✅ Token valid, showing app...');
                     showApp();
-                    loadCurrentShift();
                 } else {
                     throw new Error('Invalid token');
                 }
@@ -1821,13 +1916,60 @@ function showAddInventoryModal() {
     showAlert('info', 'Add inventory item modal would open here');
 }
 
-function adjustInventoryItem(itemId) {
+async function adjustInventoryItem(itemId) {
     const newQuantity = prompt('Enter new quantity for this item:');
     if (newQuantity !== null && !isNaN(newQuantity)) {
         const quantity = parseInt(newQuantity);
-        // Create a mock input element to use with the updated function
-        const mockInput = { value: quantity, max: 999999 };
-        updateInventoryQuantity(mockInput, itemId);
+        
+        try {
+            // Get the current inventory item
+            const itemResponse = await fetch(`/api/inventory/${itemId}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (!itemResponse.ok) {
+                throw new Error('Failed to get current inventory item');
+            }
+            
+            const currentItem = await itemResponse.json();
+            const currentQuantity = currentItem.quantity;
+            const quantityChange = quantity - currentQuantity;
+            
+            if (quantityChange === 0) {
+                showAlert('info', 'No change needed');
+                return;
+            }
+            
+            // Use the adjustment endpoint
+            const response = await fetch(`/api/inventory/${currentItem.part_number}/adjust`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    action: quantityChange > 0 ? 'add' : 'remove',
+                    quantity_change: Math.abs(quantityChange),
+                    notes: 'Manual adjustment via adjust button'
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                showAlert('success', `Inventory adjusted: ${result.old_quantity} → ${result.new_quantity}`);
+                
+                // Refresh the inventory page
+                if (currentPage === 'inventory') {
+                    loadInventoryPage();
+                }
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to adjust inventory');
+            }
+        } catch (error) {
+            console.error('Error adjusting inventory:', error);
+            showAlert('error', 'Error adjusting inventory: ' + error.message);
+        }
     }
 }
 
@@ -1882,20 +2024,58 @@ function makeEditable(cell, itemId, field) {
         }
         
         try {
-            const response = await fetch(`/api/inventory/${itemId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({ [field]: newValue })
-            });
+            let response;
+            
+            if (field === 'quantity') {
+                // For quantity changes, use the adjustment endpoint
+                const itemResponse = await fetch(`/api/inventory/${itemId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!itemResponse.ok) {
+                    throw new Error('Failed to get current inventory item');
+                }
+                
+                const currentItem = await itemResponse.json();
+                const currentQuantity = currentItem.quantity;
+                const newQuantity = parseInt(newValue);
+                const quantityChange = newQuantity - currentQuantity;
+                
+                if (quantityChange === 0) {
+                    cell.textContent = originalValue;
+                    return;
+                }
+                
+                response = await fetch(`/api/inventory/${currentItem.part_number}/adjust`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        action: quantityChange > 0 ? 'add' : 'remove',
+                        quantity_change: Math.abs(quantityChange),
+                        notes: 'Inline quantity adjustment'
+                    })
+                });
+            } else {
+                // For other fields, use the regular update endpoint
+                response = await fetch(`/api/inventory/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ [field]: newValue })
+                });
+            }
             
             if (response.ok) {
-                cell.textContent = newValue;
                 if (field === 'quantity') {
+                    const result = await response.json();
+                    cell.textContent = result.new_quantity;
                     // Update color for low stock
-                    const qty = parseInt(newValue);
+                    const qty = result.new_quantity;
                     if (qty <= 5) {
                         cell.style.color = '#ef4444';
                         cell.style.fontWeight = '600';
@@ -1903,10 +2083,19 @@ function makeEditable(cell, itemId, field) {
                         cell.style.color = '';
                         cell.style.fontWeight = '';
                     }
+                    showAlert('success', `Quantity updated: ${result.old_quantity} → ${result.new_quantity}`);
+                } else {
+                    cell.textContent = newValue;
+                    showAlert('success', `Updated ${field} successfully`);
                 }
-                showAlert('success', `Updated ${field} successfully`);
+                
+                // Refresh the inventory page if we're on it
+                if (currentPage === 'inventory') {
+                    loadInventoryPage();
+                }
             } else {
-                throw new Error('Failed to update');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update');
             }
         } catch (error) {
             console.error('Error updating inventory:', error);
@@ -2160,9 +2349,8 @@ async function saveShiftNote() {
                 const itemId = item.getAttribute('data-item-id');
                 const quantity = item.querySelector('input[type="number"]')?.value || 1;
                 const partNumber = item.querySelector('strong')?.textContent || '';
-                const fullText = item.querySelector('div').parentElement.textContent;
-                const partNumberText = item.querySelector('strong').textContent;
-                const productName = fullText.replace(partNumberText + ' - ', '').split('\n')[0].trim();
+                const productNameElement = item.querySelector('[data-product-name]');
+                const productName = productNameElement ? productNameElement.getAttribute('data-product-name') : 'Unknown Product';
                 
                 task.parts_used.push({
                     id: itemId,
@@ -2331,9 +2519,8 @@ async function generateShiftSummary() {
                 const itemId = item.getAttribute('data-item-id');
                 const quantity = item.querySelector('input[type="number"]')?.value || 1;
                 const partNumber = item.querySelector('strong')?.textContent || '';
-                const fullText = item.querySelector('div').parentElement.textContent;
-                const partNumberText = item.querySelector('strong').textContent;
-                const productName = fullText.replace(partNumberText + ' - ', '').split('\n')[0].trim();
+                const productNameElement = item.querySelector('[data-product-name]');
+                const productName = productNameElement ? productNameElement.getAttribute('data-product-name') : 'Unknown Product';
                 
                 task.parts_used.push({
                     id: itemId,

@@ -30,3 +30,24 @@ fix-passwords.js
 
 #Backup
 *.backup
+
+# Test files
+test-password.js
+
+# Database backups
+backups/
+
+# Uploads
+uploads/
+
+# Environment files
+.env
+.env.example
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

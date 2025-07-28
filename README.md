@@ -1,6 +1,6 @@
-# 🔧 IT Shift Notes & Inventory Management System
+# 🔧 Notentory - Shift Notes & Inventory Management System
 
-A comprehensive web-based system for managing IT shift notes, inventory tracking, and team collaboration.
+A comprehensive web-based system for managing shift notes, inventory tracking, and team collaboration.
 
 ## ✨ Features
 
@@ -60,13 +60,27 @@ A comprehensive web-based system for managing IT shift notes, inventory tracking
 
 3. **Set up environment variables**
    ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+   # Create a .env file with your database configuration
+   echo "DB_HOST=localhost" > .env
+   echo "DB_USER=your_database_user" >> .env
+   echo "DB_PASSWORD=your_database_password" >> .env
+   echo "DB_NAME=shift_notes_db" >> .env
+   echo "JWT_SECRET=your_super_secret_jwt_key_here" >> .env
+   echo "PORT=3000" >> .env
    ```
 
 4. **Set up database**
    ```bash
-   # Create database and tables (see production-setup.md)
+   # Create MySQL database and user
+   mysql -u root -p
+   CREATE DATABASE shift_notes_db;
+   CREATE USER 'your_database_user'@'localhost' IDENTIFIED BY 'your_database_password';
+   GRANT ALL PRIVILEGES ON shift_notes_db.* TO 'your_database_user'@'localhost';
+   FLUSH PRIVILEGES;
+   EXIT;
+   
+   # Initialize database with tables and default data
+   node database-init.js
    ```
 
 5. **Start the application**
@@ -77,19 +91,19 @@ A comprehensive web-based system for managing IT shift notes, inventory tracking
 6. **Access the application**
    - Open browser to `http://localhost:3000`
    - Login with default admin credentials:
-     - Email: `admin@company.com`
-     - Password: `admin123`
+     - Email: `admin@shiftnotes.com`
+     - Password: `your_admin_password_here` (set in database-init.js)
 
 ## 🔐 Default Login Credentials
 
 ### Administrator
-- **Email:** `admin@company.com`
-- **Password:** `admin123`
+- **Email:** `admin@shiftnotes.com`
+- **Password:** Set during database initialization
 - **Access:** Full system access
 
 ### Regular User
-- **Email:** `user@company.com`
-- **Password:** `user123`
+- **Email:** `user@shiftnotes.com`
+- **Password:** Set during database initialization
 - **Access:** Basic shift notes and inventory
 
 ## 📁 Project Structure
@@ -162,6 +176,26 @@ shift-notes/
 - **Input Validation** - Server-side validation
 - **CORS Protection** - Cross-origin request protection
 - **Helmet Security** - Security headers
+
+## 🆕 Recent Updates (v1.0.0)
+
+### ✅ **Major Fixes Completed**
+- **Inventory System** - Fixed quantity updates, persistence, and transaction logging
+- **File Upload System** - Complete implementation with proper storage and management
+- **Backup System** - Automated and manual backup capabilities with proper permissions
+- **User Management** - Full CRUD operations with role-based access control
+- **Dashboard Data** - Real-time statistics and recent activity
+- **Error Handling** - User-friendly error messages and centralized error handling
+- **Shift Notes** - Fixed auto-creation issues and improved workflow
+- **Branding** - Updated to "Notentory" branding throughout the application
+
+### 🔧 **Technical Improvements**
+- Upgraded to multer 2.x for file uploads
+- Implemented proper database transaction logging
+- Added comprehensive activity logging
+- Fixed file system API usage (fsPromises)
+- Improved backup system with proper permissions
+- Enhanced user management with real API integration
 
 ## 📊 Backup & Recovery
 

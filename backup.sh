@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Backup script for IT Shift Notes & Inventory System
+# Backup script for Notentory - Shift Notes & Inventory System
 # Usage: ./backup.sh [manual|auto] [description]
 
 set -e  # Exit on any error
@@ -9,7 +9,7 @@ set -e  # Exit on any error
 BACKUP_DIR="/opt/shift-notes/backups"
 DB_NAME="${DB_NAME:-shift_notes_db}"
 DB_USER="${DB_USER:-shift_user}"
-DB_PASSWORD="${DB_PASSWORD:-Zd7010us}"
+DB_PASSWORD="${DB_PASSWORD:-your_database_password_here}"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_TYPE="${1:-auto}"
 DESCRIPTION="${2:-$BACKUP_TYPE backup}"

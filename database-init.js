@@ -9,7 +9,7 @@ async function initializeDatabase() {
         connection = await mysql.createConnection({
             host: process.env.DB_HOST || '127.0.0.1',
             user: process.env.DB_USER || 'shift_user',
-            password: process.env.DB_PASSWORD || 'Zd7010us',
+            password: process.env.DB_PASSWORD || 'your_database_password_here',
             port: process.env.DB_PORT || 3306
         });
 
@@ -95,7 +95,7 @@ async function initializeDatabase() {
                 shift_note_id INT NOT NULL,
                 title VARCHAR(255) NOT NULL,
                 description TEXT,
-                status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+                status ENUM('in_progress', 'completed') DEFAULT 'in_progress',
                 ticket_number VARCHAR(100),
                 parts_used TEXT,
                 blocker_reason TEXT,
@@ -176,10 +176,34 @@ async function initializeDatabase() {
             )
         `);
 
+        // Create settings table
+        console.log('⚙️ Creating settings table...');
+        await connection.execute(`
+            CREATE TABLE settings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                setting_key VARCHAR(100) UNIQUE NOT NULL,
+                setting_value TEXT,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Insert default backup settings
+        console.log('🔧 Inserting default backup settings...');
+        await connection.execute(`
+            INSERT INTO settings (setting_key, setting_value, description) VALUES
+            ('backup_enabled', 'true', 'Enable automatic backups'),
+            ('backup_frequency', 'daily', 'Backup frequency (daily, twice-daily, weekly)'),
+            ('backup_time', '02:00', 'Time to run backups (HH:MM)'),
+            ('backup_retention_days', '30', 'Number of days to keep backups')
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        `);
+
         // Create default admin user
         console.log('👑 Creating default admin user...');
         const bcrypt = require('bcrypt');
-        const hashedPassword = await bcrypt.hash('admin123', 10);
+        const hashedPassword = await bcrypt.hash('your_admin_password_here', 10);
         
         await connection.execute(`
             INSERT INTO users (name, email, password_hash, role) 
@@ -197,7 +221,7 @@ async function initializeDatabase() {
         `);
 
         console.log('✅ Database initialization completed successfully!');
-        console.log('🔑 Default admin credentials: admin@shiftnotes.com / admin123');
+        console.log('🔑 Default admin credentials: admin@shiftnotes.com / your_admin_password_here');
 
     } catch (error) {
         console.error('❌ Database initialization failed:', error);
