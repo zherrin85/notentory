@@ -2269,20 +2269,11 @@ async function importInventory() {
     }
     
     try {
-        showLoading('Processing Excel file...');
+        showLoading('Processing file...');
         
         const formData = new FormData();
         formData.append('file', file);
         
-        // For now, show success message (replace with real API call when backend is connected)
-        hideLoading();
-        showAlert('success', 'Inventory import completed successfully! 150 items imported.');
-        
-        // Close modal and refresh inventory table
-        closeImportModal();
-        
-        // Uncomment when connecting to real backend:
-        /*
         const response = await fetch('/api/inventory/import', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${authToken}` },
@@ -2293,7 +2284,13 @@ async function importInventory() {
         
         if (response.ok) {
             const result = await response.json();
-            showAlert('success', `Inventory import completed successfully! ${result.importedCount} items imported.`);
+            let message = `Inventory import completed successfully! ${result.importedCount} items imported.`;
+            
+            if (result.errors && result.errors.length > 0) {
+                message += `\n\nErrors encountered:\n${result.errors.join('\n')}`;
+            }
+            
+            showAlert('success', message);
             closeImportModal();
             // Refresh inventory table
             loadInventoryPage();
@@ -2301,7 +2298,6 @@ async function importInventory() {
             const error = await response.json();
             throw new Error(error.message || 'Import failed');
         }
-        */
         
     } catch (error) {
         hideLoading();

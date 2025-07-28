@@ -988,6 +988,178 @@ app.post('/api/inventory/:part_number/adjust', authenticateToken, async (req, re
     }
 });
 
+// Bulk import inventory from Excel/CSV
+app.post('/api/inventory/import', authenticateToken, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const file = req.file;
+    
+    // Validate file type
+    const validTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv' // .csv
+    ];
+    
+    if (!validTypes.includes(file.mimetype) && !file.originalname.match(/\.(xlsx|xls|csv)$/i)) {
+        return res.status(400).json({ message: 'Invalid file type. Please upload Excel or CSV file.' });
+    }
+
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+    }
+
+    try {
+        let inventoryData = [];
+        
+        if (file.mimetype === 'text/csv' || file.originalname.toLowerCase().endsWith('.csv')) {
+            // Parse CSV file
+            const csvContent = file.buffer.toString('utf8');
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                return res.status(400).json({ message: 'CSV file must have at least a header row and one data row' });
+            }
+            
+            // Parse header row
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const requiredHeaders = ['part #', 'vendor', 'product name', 'description', 'location', 'quantity'];
+            
+            // Check if all required headers are present
+            const missingHeaders = requiredHeaders.filter(h => !headers.some(header => header.includes(h.toLowerCase())));
+            if (missingHeaders.length > 0) {
+                return res.status(400).json({ 
+                    message: `Missing required headers: ${missingHeaders.join(', ')}. Expected: Part #, Vendor, Product Name, Description, Location, Quantity` 
+                });
+            }
+            
+            // Parse data rows
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                if (values.length >= 6 && values[0] && values[2]) { // At least part number and product name
+                    inventoryData.push({
+                        part_number: values[0],
+                        vendor: values[1] || '',
+                        product_name: values[2],
+                        description: values[3] || '',
+                        location: values[4] || '',
+                        quantity: parseInt(values[5]) || 0
+                    });
+                }
+            }
+        } else {
+            // For Excel files, we'll need to install a library like 'xlsx'
+            // For now, return an error suggesting CSV format
+            return res.status(400).json({ 
+                message: 'Excel file parsing not yet implemented. Please use CSV format or install xlsx library.' 
+            });
+        }
+        
+        if (inventoryData.length === 0) {
+            return res.status(400).json({ message: 'No valid inventory data found in file' });
+        }
+        
+        // Validate data and check for duplicates
+        const existingPartNumbers = [];
+        const validItems = [];
+        const errors = [];
+        
+        for (let i = 0; i < inventoryData.length; i++) {
+            const item = inventoryData[i];
+            const rowNumber = i + 2; // +2 because we start from row 2 (after header)
+            
+            // Basic validation
+            if (!item.part_number || !item.product_name) {
+                errors.push(`Row ${rowNumber}: Part number and product name are required`);
+                continue;
+            }
+            
+            if (item.part_number.length > 100) {
+                errors.push(`Row ${rowNumber}: Part number too long (max 100 characters)`);
+                continue;
+            }
+            
+            if (item.product_name.length > 255) {
+                errors.push(`Row ${rowNumber}: Product name too long (max 255 characters)`);
+                continue;
+            }
+            
+            if (isNaN(item.quantity) || item.quantity < 0) {
+                errors.push(`Row ${rowNumber}: Invalid quantity (must be 0 or positive number)`);
+                continue;
+            }
+            
+            existingPartNumbers.push(item.part_number);
+            validItems.push(item);
+        }
+        
+        // Check for duplicates in the file
+        const duplicates = existingPartNumbers.filter((item, index) => existingPartNumbers.indexOf(item) !== index);
+        if (duplicates.length > 0) {
+            errors.push(`Duplicate part numbers in file: ${[...new Set(duplicates)].join(', ')}`);
+        }
+        
+        // Check for existing part numbers in database
+        if (validItems.length > 0) {
+            const partNumbers = validItems.map(item => item.part_number);
+            const placeholders = partNumbers.map(() => '?').join(',');
+            const [existing] = await pool.execute(
+                `SELECT part_number FROM inventory WHERE part_number IN (${placeholders})`,
+                partNumbers
+            );
+            
+            if (existing.length > 0) {
+                const existingParts = existing.map(row => row.part_number).join(', ');
+                errors.push(`Part numbers already exist in database: ${existingParts}`);
+            }
+        }
+        
+        if (errors.length > 0) {
+            return res.status(400).json({ 
+                message: 'Import validation failed', 
+                errors: errors 
+            });
+        }
+        
+        // Insert all valid items
+        let importedCount = 0;
+        for (const item of validItems) {
+            try {
+                await pool.execute(
+                    'INSERT INTO inventory (part_number, product_name, vendor, description, location, quantity) VALUES (?, ?, ?, ?, ?, ?)',
+                    [item.part_number, item.product_name, item.vendor, item.description, item.location, item.quantity]
+                );
+                importedCount++;
+            } catch (error) {
+                console.error('Error inserting item:', item, error);
+                errors.push(`Failed to import ${item.part_number}: ${error.message}`);
+            }
+        }
+        
+        // Log the import activity
+        await logActivity(req.user.id, 'bulk_import_inventory', 'inventory', null, {
+            file_name: file.originalname,
+            imported_count: importedCount,
+            total_items: inventoryData.length,
+            errors: errors.length > 0 ? errors : null
+        }, req.ip);
+        
+        res.json({ 
+            message: `Import completed successfully!`,
+            importedCount,
+            totalItems: inventoryData.length,
+            errors: errors.length > 0 ? errors : null
+        });
+        
+    } catch (error) {
+        console.error('Inventory import error:', error);
+        res.status(500).json({ message: 'Server error: ' + error.message });
+    }
+});
+
 // REPORTING ROUTES
 
 // Dashboard data
