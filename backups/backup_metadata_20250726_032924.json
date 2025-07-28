@@ -1,0 +1,8 @@
+{
+    "backup_type": "manual",
+    "description": "Manual backup",
+    "timestamp": "2025-07-26T03:29:24-07:00",
+    "files": [
+        "database_backup_20250726_032924.sql"
+    ]
+}
