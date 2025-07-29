@@ -998,7 +998,7 @@ async function loadInventoryPage() {
     try {
         showLoading('Loading inventory...');
         
-        const response = await fetch(`/api/inventory?t=${Date.now()}`, {
+        const response = await fetch(`/api/inventory?limit=1000&t=${Date.now()}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
@@ -1010,6 +1010,7 @@ async function loadInventoryPage() {
         
         const data = await response.json();
         const inventory = data.items || [];
+        console.log(`📊 Loaded ${inventory.length} of ${data.total} inventory items`);
         
     const pageContent = document.getElementById('page-content');
     pageContent.innerHTML = `

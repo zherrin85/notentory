@@ -40,19 +40,22 @@ const upload = multer({
         files: 5 // Max 5 files per request
     },
     fileFilter: function (req, file, cb) {
-        // Allow images, PDFs, and common document types
+        // Allow images, PDFs, documents, and CSV files
         const allowedTypes = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain'
+            'text/plain',
+            'text/csv',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel'
         ];
         
-        if (allowedTypes.includes(file.mimetype)) {
+        if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(csv|xlsx|xls)$/i)) {
             cb(null, true);
         } else {
-            cb(new Error('Invalid file type. Only images, PDFs, and documents are allowed.'), false);
+            cb(new Error('Invalid file type. Only images, PDFs, documents, and spreadsheet files are allowed.'), false);
         }
     }
 });
@@ -759,7 +762,7 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
         let params = [];
         
         if (search) {
-            query += ` AND (i.part_number LIKE ? OR i.vendor LIKE ? OR i.product LIKE ? OR i.description LIKE ?)`;
+            query += ` AND (i.part_number LIKE ? OR i.vendor LIKE ? OR i.product_name LIKE ? OR i.description LIKE ?)`;
             const searchTerm = `%${search}%`;
             params.push(searchTerm, searchTerm, searchTerm, searchTerm);
         }
@@ -807,7 +810,8 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
             items: inventory,
             total: countResult[0].total,
             page,
-            totalPages: Math.ceil(countResult[0].total / limit)
+            totalPages: Math.ceil(countResult[0].total / limit),
+            loaded: inventory.length
         });
         
     } catch (error) {
@@ -990,11 +994,15 @@ app.post('/api/inventory/:part_number/adjust', authenticateToken, async (req, re
 
 // Bulk import inventory from Excel/CSV
 app.post('/api/inventory/import', authenticateToken, upload.single('file'), async (req, res) => {
+    console.log('📁 Inventory import request received');
+    
     if (!req.file) {
+        console.log('❌ No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
     }
 
     const file = req.file;
+    console.log('📄 File received:', file.originalname, 'Size:', file.size, 'Type:', file.mimetype);
     
     // Validate file type
     const validTypes = [
@@ -1013,12 +1021,15 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
     }
 
     try {
+        console.log('🔄 Starting CSV processing...');
         let inventoryData = [];
         
         if (file.mimetype === 'text/csv' || file.originalname.toLowerCase().endsWith('.csv')) {
             // Parse CSV file
-            const csvContent = file.buffer.toString('utf8');
+            console.log('📖 Reading CSV file...');
+            const csvContent = await fsPromises.readFile(file.path, 'utf8');
             const lines = csvContent.split('\n').filter(line => line.trim());
+            console.log('📊 Found', lines.length, 'lines in CSV');
             
             if (lines.length < 2) {
                 return res.status(400).json({ message: 'CSV file must have at least a header row and one data row' });
@@ -1028,13 +1039,16 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
             const requiredHeaders = ['part #', 'vendor', 'product name', 'description', 'location', 'quantity'];
             
-            // Check if all required headers are present
-            const missingHeaders = requiredHeaders.filter(h => !headers.some(header => header.includes(h.toLowerCase())));
-            if (missingHeaders.length > 0) {
-                return res.status(400).json({ 
-                    message: `Missing required headers: ${missingHeaders.join(', ')}. Expected: Part #, Vendor, Product Name, Description, Location, Quantity` 
-                });
-            }
+                    // Check if all required headers are present
+        console.log('📋 Found headers:', headers);
+        const missingHeaders = requiredHeaders.filter(h => !headers.some(header => header.includes(h.toLowerCase())));
+        if (missingHeaders.length > 0) {
+            console.log('❌ Missing headers:', missingHeaders);
+            return res.status(400).json({ 
+                message: `Missing required headers: ${missingHeaders.join(', ')}. Expected: Part #, Vendor, Product Name, Description, Location, Quantity` 
+            });
+        }
+        console.log('✅ All required headers found');
             
             // Parse data rows
             for (let i = 1; i < lines.length; i++) {
@@ -1058,11 +1072,15 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
             });
         }
         
+        console.log('📋 Parsed', inventoryData.length, 'inventory items');
+        
         if (inventoryData.length === 0) {
+            console.log('❌ No valid inventory data found');
             return res.status(400).json({ message: 'No valid inventory data found in file' });
         }
         
         // Validate data and check for duplicates
+        console.log('🔍 Validating data...');
         const existingPartNumbers = [];
         const validItems = [];
         const errors = [];
@@ -1097,13 +1115,33 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
         }
         
         // Check for duplicates in the file
+        console.log('🔍 Checking for duplicates in file...');
         const duplicates = existingPartNumbers.filter((item, index) => existingPartNumbers.indexOf(item) !== index);
         if (duplicates.length > 0) {
-            errors.push(`Duplicate part numbers in file: ${[...new Set(duplicates)].join(', ')}`);
+            const uniqueDuplicates = [...new Set(duplicates)];
+            console.log('⚠️ Found duplicates:', uniqueDuplicates);
+            console.log('📝 Removing duplicates from import...');
+            
+            // Remove duplicates from validItems, keeping only the first occurrence
+            const seen = new Set();
+            const deduplicatedItems = validItems.filter(item => {
+                if (seen.has(item.part_number)) {
+                    return false;
+                }
+                seen.add(item.part_number);
+                return true;
+            });
+            
+            console.log(`📊 Removed ${validItems.length - deduplicatedItems.length} duplicate items`);
+            validItems.length = 0;
+            validItems.push(...deduplicatedItems);
+        } else {
+            console.log('✅ No duplicates found in file');
         }
         
         // Check for existing part numbers in database
         if (validItems.length > 0) {
+            console.log('🔍 Checking for existing part numbers in database...');
             const partNumbers = validItems.map(item => item.part_number);
             const placeholders = partNumbers.map(() => '?').join(',');
             const [existing] = await pool.execute(
@@ -1113,18 +1151,25 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
             
             if (existing.length > 0) {
                 const existingParts = existing.map(row => row.part_number).join(', ');
+                console.log('❌ Found existing part numbers:', existingParts);
                 errors.push(`Part numbers already exist in database: ${existingParts}`);
+            } else {
+                console.log('✅ No existing part numbers found in database');
             }
         }
         
+        console.log('📊 Validation complete. Errors found:', errors.length);
         if (errors.length > 0) {
+            console.log('❌ Validation errors:', errors);
             return res.status(400).json({ 
                 message: 'Import validation failed', 
                 errors: errors 
             });
         }
+        console.log('✅ Validation passed, proceeding with import');
         
         // Insert all valid items
+        console.log('💾 Inserting', validItems.length, 'items into database...');
         let importedCount = 0;
         for (const item of validItems) {
             try {
@@ -1137,6 +1182,14 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
                 console.error('Error inserting item:', item, error);
                 errors.push(`Failed to import ${item.part_number}: ${error.message}`);
             }
+        }
+        console.log('✅ Successfully imported', importedCount, 'items');
+        
+        // Clean up uploaded file
+        try {
+            await fsPromises.unlink(file.path);
+        } catch (cleanupError) {
+            console.error('Error cleaning up uploaded file:', cleanupError);
         }
         
         // Log the import activity
@@ -1155,6 +1208,14 @@ app.post('/api/inventory/import', authenticateToken, upload.single('file'), asyn
         });
         
     } catch (error) {
+        // Clean up uploaded file on error
+        if (req.file) {
+            try {
+                await fsPromises.unlink(req.file.path);
+            } catch (cleanupError) {
+                console.error('Error cleaning up uploaded file on error:', cleanupError);
+            }
+        }
         console.error('Inventory import error:', error);
         res.status(500).json({ message: 'Server error: ' + error.message });
     }
