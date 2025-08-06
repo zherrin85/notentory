@@ -1,10 +1,18 @@
 #!/bin/bash
 
-# Notentory - Shift Notes & Inventory System - Deployment Script for Debian
-# This script sets up the complete system on a fresh Debian installation
-# Run as root: sudo ./deploy.sh
+# Notentory Production Deployment Script
+# This script automates the deployment of the Notentory application
 
 set -e  # Exit on any error
+
+# Configuration
+APP_NAME="notentory"
+APP_DIR="/opt/shift-notes"
+DB_NAME="shift_notes_db"
+DB_USER="shift_user"
+DB_PASSWORD="your_secure_database_password"
+NODE_VERSION="18"
+DOMAIN="yourdomain.com"
 
 # Colors for output
 RED='\033[0;31m'
@@ -13,184 +21,166 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-APP_NAME="shift-notes"
-APP_DIR="/opt/shift-notes"
-APP_USER="shiftnotes"
-DB_NAME="shift_inventory_system"
-DB_USER="shiftnotes_user"
-DB_PASSWORD="your_secure_database_password_here"  # Change this in production!
-NODE_VERSION="18"
+# Logging function
+log() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+}
 
-echo -e "${BLUE}🚀 Notentory - Shift Notes & Inventory System Deployment Script${NC}"
-echo -e "${BLUE}=================================================${NC}"
-echo ""
+warn() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
+}
+
+error() {
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
+}
 
 # Check if running as root
-if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}❌ This script must be run as root (use sudo)${NC}"
+if [[ $EUID -eq 0 ]]; then
+   error "This script should not be run as root"
    exit 1
 fi
 
-# Function to print status
-print_status() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
-
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
+log "Starting Notentory deployment..."
 
 # Update system packages
-echo -e "${BLUE}📦 Updating system packages...${NC}"
-apt update && apt upgrade -y
-print_status "System packages updated"
+log "Updating system packages..."
+sudo apt update && sudo apt upgrade -y
 
 # Install required packages
-echo -e "${BLUE}📦 Installing required packages...${NC}"
-apt install -y curl wget gnupg2 software-properties-common apt-transport-https ca-certificates \
-               nginx mariadb-server mariadb-client ufw fail2ban logrotate git
-
-print_status "Required packages installed"
+log "Installing required packages..."
+sudo apt install -y curl wget git nginx mysql-server certbot python3-certbot-nginx fail2ban ufw
 
 # Install Node.js
-echo -e "${BLUE}📦 Installing Node.js ${NODE_VERSION}...${NC}"
+log "Installing Node.js ${NODE_VERSION}..."
 curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash -
-apt install -y nodejs
-print_status "Node.js $(node --version) installed"
+sudo apt-get install -y nodejs
 
-# Create application user
-echo -e "${BLUE}👤 Creating application user...${NC}"
-if ! id "$APP_USER" &>/dev/null; then
-    useradd --system --shell /bin/bash --home-dir $APP_DIR --create-home $APP_USER
-    print_status "User $APP_USER created"
+# Verify Node.js installation
+log "Verifying Node.js installation..."
+node --version
+npm --version
+
+# Create application directory
+log "Creating application directory..."
+sudo mkdir -p $APP_DIR
+sudo chown $USER:$USER $APP_DIR
+
+# Clone or copy application files
+log "Setting up application files..."
+if [ -d "$APP_DIR/.git" ]; then
+    log "Updating existing repository..."
+    cd $APP_DIR
+    git pull origin main
 else
-    print_warning "User $APP_USER already exists"
-fi
-
-# Create application directory structure
-echo -e "${BLUE}📁 Setting up application directories...${NC}"
-mkdir -p $APP_DIR/{logs,uploads,backups}
-chown -R $APP_USER:$APP_USER $APP_DIR
-chmod 755 $APP_DIR
-chmod 755 $APP_DIR/uploads
-print_status "Application directories created"
-
-# Setup MariaDB
-echo -e "${BLUE}🗄️  Configuring MariaDB...${NC}"
-systemctl start mariadb
-systemctl enable mariadb
-
-# Secure MariaDB installation (automated)
-mysql -e "DELETE FROM mysql.user WHERE User='';"
-mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
-mysql -e "DROP DATABASE IF EXISTS test;"
-mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
-mysql -e "FLUSH PRIVILEGES;"
-
-# Create database and user
-mysql -e "CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
-mysql -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
-mysql -e "FLUSH PRIVILEGES;"
-
-print_status "MariaDB configured and database created"
-
-# Copy application files (assuming they're in current directory)
-echo -e "${BLUE}📂 Copying application files...${NC}"
-if [ -f "server.js" ]; then
-    cp server.js $APP_DIR/
-    cp package.json $APP_DIR/
-    cp database-init.js $APP_DIR/
-    cp -r public $APP_DIR/
-    chown -R $APP_USER:$APP_USER $APP_DIR
-    print_status "Application files copied"
-else
-    print_warning "Application files not found in current directory"
-    print_warning "Please copy server.js, package.json, database-init.js, and public/ to $APP_DIR manually"
+    log "Cloning repository..."
+    git clone <repository-url> $APP_DIR
+    cd $APP_DIR
 fi
 
 # Install Node.js dependencies
-echo -e "${BLUE}📦 Installing Node.js dependencies...${NC}"
-cd $APP_DIR
-sudo -u $APP_USER npm install --production
-print_status "Node.js dependencies installed"
+log "Installing Node.js dependencies..."
+npm install --production
+
+# Secure MySQL installation
+log "Securing MySQL installation..."
+sudo mysql_secure_installation
+
+# Create database and user
+log "Setting up database..."
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+sudo mysql -e "DELETE FROM mysql.user WHERE User='';"
+sudo mysql -e "FLUSH PRIVILEGES;"
+sudo mysql -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+sudo mysql -e "FLUSH PRIVILEGES;"
+
+# Create environment file
+log "Creating environment configuration..."
+cat > $APP_DIR/.env << EOF
+# Database Configuration
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+DB_NAME=$DB_NAME
+
+# JWT Configuration
+JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+
+# Server Configuration
+PORT=3000
+NODE_ENV=production
+
+# CORS Configuration
+CORS_ORIGIN=https://$DOMAIN
+EOF
+
+# Create required directories
+log "Creating required directories..."
+mkdir -p $APP_DIR/uploads
+mkdir -p $APP_DIR/backups
+chmod 755 $APP_DIR/uploads
+chmod 755 $APP_DIR/backups
 
 # Initialize database
-echo -e "${BLUE}🗄️  Initializing database...${NC}"
-sudo -u $APP_USER node database-init.js
-print_status "Database initialized with sample data"
+log "Initializing database..."
+node $APP_DIR/database-init.js
 
 # Create systemd service
-echo -e "${BLUE}⚙️  Creating systemd service...${NC}"
-cat > /etc/systemd/system/$APP_NAME.service << EOF
+log "Creating systemd service..."
+sudo tee /etc/systemd/system/$APP_NAME.service > /dev/null << EOF
 [Unit]
-Description=Notentory - Shift Notes & Inventory Management System
+Description=Notentory Shift Notes Application
 Documentation=https://github.com/your-company/shift-notes
-After=network.target mariadb.service
-Wants=mariadb.service
+After=network.target mysql.service
 
 [Service]
 Type=simple
-User=$APP_USER
-Group=$APP_USER
+User=www-data
+Group=www-data
 WorkingDirectory=$APP_DIR
 ExecStart=/usr/bin/node server.js
-ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=10
-TimeoutStopSec=30
-
-# Environment variables
-Environment=NODE_ENV=production
-Environment=PORT=3000
-Environment=JWT_SECRET=$(openssl rand -base64 32)
-Environment=DB_HOST=127.0.0.1
-Environment=DB_USER=$DB_USER
-Environment=DB_PASSWORD=$DB_PASSWORD
-Environment=DB_NAME=$DB_NAME
-
-# Security settings
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
-PrivateDevices=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-ReadWritePaths=$APP_DIR/uploads
-ReadWritePaths=$APP_DIR/logs
-
-# Resource limits
-LimitNOFILE=65536
-LimitNPROC=4096
-
-# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=$APP_NAME
 
-# Graceful shutdown
-KillMode=mixed
-KillSignal=SIGTERM
-TimeoutSec=30
+# Environment variables
+Environment=DB_HOST=127.0.0.1
+Environment=DB_PORT=3306
+Environment=DB_USER=$DB_USER
+Environment=DB_PASSWORD=$DB_PASSWORD
+Environment=DB_NAME=$DB_NAME
+Environment=NODE_ENV=production
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$APP_DIR
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
-systemctl enable $APP_NAME
-print_status "Systemd service created and enabled"
+# Set proper permissions
+log "Setting file permissions..."
+sudo chown -R www-data:www-data $APP_DIR
+sudo chmod -R 755 $APP_DIR
+sudo chmod 600 $APP_DIR/.env
+
+# Enable and start service
+log "Starting application service..."
+sudo systemctl daemon-reload
+sudo systemctl enable $APP_NAME
+sudo systemctl start $APP_NAME
 
 # Configure Nginx
-echo -e "${BLUE}🌐 Configuring Nginx...${NC}"
-cat > /etc/nginx/sites-available/$APP_NAME << EOF
+log "Configuring Nginx..."
+sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null << EOF
 server {
     listen 80;
     server_name localhost;
@@ -206,50 +196,13 @@ server {
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private must-revalidate;
-    gzip_types
-        text/plain
-        text/css
-        text/xml
-        text/javascript
-        application/javascript
-        application/json
-        application/xml+rss;
+    gzip_proxied expired no-cache no-store private must-revalidate auth;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss;
     
-    # Rate limiting
-    limit_req_zone \$binary_remote_addr zone=api:10m rate=10r/s;
-    limit_req_zone \$binary_remote_addr zone=login:10m rate=5r/m;
+    # Client max body size for file uploads
+    client_max_body_size 50M;
     
-    # Root directory
-    root $APP_DIR/public;
-    index index.html;
-    
-    # Serve static files
     location / {
-        try_files \$uri \$uri/ /index.html;
-        expires 1h;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # API proxy
-    location /api/ {
-        limit_req zone=api burst=20 nodelay;
-        
-        location /api/login {
-            limit_req zone=login burst=5 nodelay;
-            proxy_pass http://localhost:3000;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection 'upgrade';
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-            proxy_cache_bypass \$http_upgrade;
-            proxy_read_timeout 60s;
-            proxy_send_timeout 60s;
-        }
-        
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
@@ -259,201 +212,115 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
-        proxy_read_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_connect_timeout 30s;
+        proxy_read_timeout 86400;
     }
     
-    # Uploads
-    location /uploads/ {
-        alias $APP_DIR/uploads/;
-        expires 1d;
-        add_header Cache-Control "private";
-        internal;
+    # Static file caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        proxy_pass http://localhost:3000;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
-    
-    # Security
-    location ~ /\\. {
-        deny all;
-        access_log off;
-        log_not_found off;
-    }
-    
-    location ~* \\.(env|log|ini)\$ {
-        deny all;
-        access_log off;
-        log_not_found off;
-    }
-    
-    # Health check
-    location /health {
-        access_log off;
-        return 200 "healthy\\n";
-        add_header Content-Type text/plain;
-    }
-    
-    # Logging
-    access_log /var/log/nginx/${APP_NAME}-access.log;
-    error_log /var/log/nginx/${APP_NAME}-error.log;
-    
-    # Upload limits
-    client_max_body_size 10M;
-    client_body_timeout 60s;
-    client_header_timeout 60s;
 }
 EOF
 
-# Enable the site
-ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default  # Remove default site
-nginx -t  # Test configuration
-systemctl restart nginx
-systemctl enable nginx
-print_status "Nginx configured and restarted"
+# Enable Nginx site
+sudo ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
 
 # Configure firewall
-echo -e "${BLUE}🔥 Configuring firewall...${NC}"
-ufw --force enable
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow ssh
-ufw allow 'Nginx Full'
-print_status "Firewall configured"
+log "Configuring firewall..."
+sudo ufw allow ssh
+sudo ufw allow 'Nginx Full'
+sudo ufw --force enable
 
-# Configure fail2ban
-echo -e "${BLUE}🛡️  Configuring fail2ban...${NC}"
-cat > /etc/fail2ban/jail.local << EOF
+# Configure Fail2ban
+log "Configuring Fail2ban..."
+sudo tee /etc/fail2ban/jail.local << EOF
 [DEFAULT]
-bantime = 1h
-findtime = 10m
+bantime = 3600
+findtime = 600
 maxretry = 5
-backend = systemd
 
 [sshd]
 enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
 
 [nginx-http-auth]
 enabled = true
+filter = nginx-http-auth
+port = http,https
+logpath = /var/log/nginx/error.log
 
-[nginx-limit-req]
+[nginx-botsearch]
 enabled = true
-filter = nginx-limit-req
-logpath = /var/log/nginx/${APP_NAME}-error.log
-maxretry = 10
+filter = nginx-botsearch
+port = http,https
+logpath = /var/log/nginx/access.log
 EOF
 
-systemctl restart fail2ban
-systemctl enable fail2ban
-print_status "Fail2ban configured"
-
-# Setup log rotation
-echo -e "${BLUE}📄 Setting up log rotation...${NC}"
-cat > /etc/logrotate.d/$APP_NAME << EOF
-$APP_DIR/logs/*.log {
-    daily
-    missingok
-    rotate 52
-    compress
-    delaycompress
-    notifempty
-    create 644 $APP_USER $APP_USER
-    postrotate
-        systemctl reload $APP_NAME
-    endscript
-}
-EOF
-print_status "Log rotation configured"
+sudo systemctl restart fail2ban
 
 # Create backup script
-echo -e "${BLUE}💾 Creating backup script...${NC}"
-cat > $APP_DIR/backup.sh << 'EOF'
+log "Setting up backup system..."
+sudo tee $APP_DIR/backup.sh > /dev/null << 'EOF'
 #!/bin/bash
-
-# Backup script for Notentory - Shift Notes & Inventory System
 BACKUP_DIR="/opt/shift-notes/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="shift_inventory_system"
-DB_USER="shiftnotes_user"
-DB_PASSWORD="your_secure_database_password_here"
 
-# Create database backup
-mysqldump -u$DB_USER -p$DB_PASSWORD $DB_NAME > $BACKUP_DIR/database_backup_$DATE.sql
+# Database backup
+mysqldump -u shift_user -p'your_secure_database_password' shift_notes_db > $BACKUP_DIR/db_backup_$DATE.sql
 
-# Create uploads backup
-tar -czf $BACKUP_DIR/uploads_backup_$DATE.tar.gz -C /opt/shift-notes uploads/
+# Uploads backup
+tar -czf $BACKUP_DIR/uploads_backup_$DATE.tar.gz uploads/
 
-# Keep only last 30 days of backups
-find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
-find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
-
-echo "Backup completed: $DATE"
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
 EOF
 
-chmod +x $APP_DIR/backup.sh
-chown $APP_USER:$APP_USER $APP_DIR/backup.sh
+sudo chmod +x $APP_DIR/backup.sh
 
 # Add backup to crontab
-(crontab -u $APP_USER -l 2>/dev/null; echo "0 2 * * * $APP_DIR/backup.sh >> $APP_DIR/logs/backup.log 2>&1") | crontab -u $APP_USER -
-print_status "Backup script created and scheduled"
+(crontab -l 2>/dev/null; echo "0 2 * * * $APP_DIR/backup.sh") | crontab -
 
-# Start services
-echo -e "${BLUE}🚀 Starting services...${NC}"
-systemctl start $APP_NAME
-sleep 5
-
-# Check if service is running
-if systemctl is-active --quiet $APP_NAME; then
-    print_status "Application service started successfully"
+# Install SSL certificate if domain is provided
+if [ "$DOMAIN" != "yourdomain.com" ]; then
+    log "Installing SSL certificate for $DOMAIN..."
+    sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
 else
-    print_error "Application service failed to start"
-    journalctl -u $APP_NAME --no-pager -l
-    exit 1
+    warn "Domain not configured. SSL certificate not installed."
+    warn "Update DOMAIN variable and run: sudo certbot --nginx -d yourdomain.com"
 fi
 
-# Final status check
-echo -e "${BLUE}🔍 Performing final health checks...${NC}"
+# Health check
+log "Performing health check..."
+sleep 10
 
-# Check if application responds
 if curl -s http://localhost/health > /dev/null; then
-    print_status "Application is responding to HTTP requests"
+    log "✅ Application is running successfully!"
 else
-    print_warning "Application may not be responding correctly"
+    warn "⚠️  Health check failed. Checking service status..."
+    sudo systemctl status $APP_NAME
 fi
 
-# Check database connection
-if mysql -u$DB_USER -p$DB_PASSWORD -e "USE $DB_NAME; SHOW TABLES;" > /dev/null 2>&1; then
-    print_status "Database connection successful"
-else
-    print_error "Database connection failed"
-fi
-
-echo ""
-echo -e "${GREEN}🎉 Deployment completed successfully!${NC}"
-echo -e "${GREEN}=================================================${NC}"
-echo ""
-echo -e "${BLUE}📋 System Information:${NC}"
-echo "   Application URL: http://$(hostname -I | awk '{print $1}')"
-echo "   Application Directory: $APP_DIR"
-echo "   Log Files: $APP_DIR/logs/ and /var/log/nginx/"
-echo "   Service Status: systemctl status $APP_NAME"
-echo ""
-echo -e "${BLUE}🔑 Default Login Credentials:${NC}"
+# Final status
+log "Deployment completed!"
+log "Application URL: http://localhost (or https://$DOMAIN if SSL is configured)"
+log "Service status: sudo systemctl status $APP_NAME"
+log "Application logs: sudo journalctl -u $APP_NAME -f"
+log ""
+log "Default login credentials:"
 echo "   Admin: admin@company.com / your_admin_password_here"
 echo "   Manager: sarah@company.com / your_manager_password_here"
 echo "   Technician: john@company.com / your_technician_password_here"
-echo ""
-echo -e "${BLUE}⚙️  Management Commands:${NC}"
-echo "   Start service: systemctl start $APP_NAME"
-echo "   Stop service: systemctl stop $APP_NAME"
-echo "   Restart service: systemctl restart $APP_NAME"
-echo "   View logs: journalctl -u $APP_NAME -f"
-echo "   Backup data: $APP_DIR/backup.sh"
-echo ""
-echo -e "${YELLOW}⚠️  Security Reminders:${NC}"
-echo "   1. Change the default database password in production"
-echo "   2. Update the JWT secret in the systemd service file"
-echo "   3. Configure SSL/TLS certificates for HTTPS"
-echo "   4. Regularly update the system and dependencies"
-echo "   5. Monitor logs for suspicious activity"
-echo ""
-echo -e "${GREEN}✅ Your Notentory - Shift Notes & Inventory System is ready for use!${NC}"
+log ""
+warn "⚠️  IMPORTANT: Change default passwords after first login!"
+warn "⚠️  IMPORTANT: Update domain configuration if using custom domain!"
+log ""
+log "🎉 Notentory deployment completed successfully!"

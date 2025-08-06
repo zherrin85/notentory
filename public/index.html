@@ -124,6 +124,8 @@
             height: 100vh;
             overflow-y: auto;
             border-right: 1px solid #334155;
+            z-index: 1000;
+            transition: transform 0.3s ease;
         }
 
         .sidebar-header {
@@ -218,6 +220,50 @@
             padding: 32px;
             max-width: 1400px;
             margin: 0 auto;
+        }
+
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #374151;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+            z-index: 1001;
+        }
+
+        .mobile-menu-btn:hover {
+            background-color: #f3f4f6;
+        }
+
+        .mobile-menu-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Mobile Menu Button Animation */
+        .mobile-menu-btn.active {
+            color: #3b82f6;
+        }
+
+        /* Mobile Overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .mobile-overlay.active {
+            display: block;
         }
 
         /* Button Styles */
@@ -686,13 +732,36 @@
         /* Responsive Design */
         @media (max-width: 768px) {
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
+                width: 280px;
+                height: 100vh;
+                position: fixed;
+                left: 0;
+                top: 0;
+                transform: translateX(-100%); /* Hide off-screen by default */
+                z-index: 1000;
             }
             
+            .sidebar.active {
+                transform: translateX(0); /* Show on mobile when active */
+            }
+
             .main-content {
                 margin-left: 0;
+                width: 100%;
+            }
+
+            .page-header {
+                padding: 16px 20px;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .page-header h1 {
+                font-size: 20px;
+            }
+
+            .page-content {
+                padding: 20px;
             }
             
             .shift-header {
@@ -709,6 +778,45 @@
             
             .upload-grid {
                 grid-template-columns: 1fr;
+            }
+
+            /* Show mobile menu button */
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            /* Adjust button sizes for mobile */
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            /* Mobile navigation improvements */
+            .nav-item {
+                padding: 20px 24px;
+                font-size: 16px;
+                min-height: 60px;
+                display: flex;
+                align-items: center;
+            }
+
+            /* Better touch targets for mobile */
+            .nav-item:active {
+                background: rgba(59, 130, 246, 0.2);
+                transform: scale(0.98);
+            }
+
+            /* Improve sidebar header spacing on mobile */
+            .sidebar-header {
+                padding: 24px 20px;
+            }
+
+            .sidebar-header h2 {
+                font-size: 18px;
+            }
+
+            .user-info {
+                font-size: 13px;
             }
         }
     </style>
@@ -770,9 +878,14 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="page-header">
-                <div>
-                    <h1 id="page-title">Daily Equipment Shift Notes</h1>
-                    <p id="page-subtitle">Integrated shift documentation and inventory management</p>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu" title="Menu">
+                        ☰
+                    </button>
+                    <div>
+                        <h1 id="page-title">Daily Equipment Shift Notes</h1>
+                        <p id="page-subtitle">Integrated shift documentation and inventory management</p>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 12px;">
                     <button class="btn btn-secondary" onclick="saveShiftNote()" style="background: #6b7280; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">💾 Save Shift</button>
@@ -785,6 +898,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-overlay" class="mobile-overlay"></div>
 
     <!-- Remove all embedded <script> blocks containing mock/demo/placeholder logic. Only load main.js as your frontend logic. -->
     <script src="main.js"></script>

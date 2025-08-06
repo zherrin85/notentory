@@ -1,121 +1,122 @@
-# 🔧 Notentory - Shift Notes & Inventory Management System
+# Notentory - Enhanced Shift Notes & Inventory Management
 
-A comprehensive web-based system for managing shift notes, inventory tracking, and team collaboration.
+A comprehensive web application for managing shift notes, inventory, and team collaboration in industrial environments.
 
-## ✨ Features
+## 🚀 Features
 
-### 📋 **Shift Management**
-- Create and edit daily shift notes
-- Track completed audits and tasks
-- ServiceNow ticket integration
-- Inventory usage tracking
-- File attachments support
-- Generate shift summaries
+- **📝 Daily Shift Notes**: Create and manage detailed shift documentation
+- **👥 Team Collaboration**: View and manage team shift notes
+- **📦 Inventory Management**: Track parts, quantities, and usage
+- **📊 Reporting**: Generate comprehensive reports and summaries
+- **🔒 User Management**: Role-based access control (Admin, Manager, Technician)
+- **📁 File Attachments**: Upload and manage documents and images
+- **🔄 Backup System**: Automated backup and restore functionality
+- **📱 Mobile Responsive**: Works seamlessly on desktop and mobile devices
 
-### 👥 **User Management**
-- Role-based access control (User, Manager, Administrator)
-- User creation, editing, and status management
-- Search and filter users
-- Password management
+## 🛠️ Technology Stack
 
-### 📦 **Inventory Management**
-- Track inventory items with part numbers
-- Real-time search functionality
-- Quantity management
-- Bulk import via Excel/CSV
-- Usage tracking per task
+- **Backend**: Node.js, Express.js
+- **Database**: MySQL 8.0+
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3
+- **Authentication**: JWT (JSON Web Tokens)
+- **File Upload**: Multer
+- **Security**: bcrypt for password hashing
 
-### 🔍 **Team Collaboration**
-- View all team member shift notes
-- Advanced search and filtering
-- Date and shift type filtering
-- Real-time updates
+## 📋 Prerequisites
 
-### ⚙️ **Administrative Tools**
-- Automated backup system
-- Manual backup creation
-- System restore functionality
-- Backup history and management
-- System configuration
+- Node.js 16.0.0 or higher
+- MySQL 8.0 or higher
+- npm or yarn package manager
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 16.0.0 or higher
-- MySQL 8.0 or higher
-- Modern web browser
+### 1. Clone the Repository
 
-### Installation
+```bash
+git clone <repository-url>
+cd shift-notes
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd shift-notes
-   ```
+### 2. Install Dependencies
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-3. **Set up environment variables**
-   ```bash
-   # Create a .env file with your database configuration
-   echo "DB_HOST=localhost" > .env
-   echo "DB_USER=your_database_user" >> .env
-   echo "DB_PASSWORD=your_database_password" >> .env
-   echo "DB_NAME=shift_notes_db" >> .env
-   echo "JWT_SECRET=your_super_secret_jwt_key_here" >> .env
-   echo "PORT=3000" >> .env
-   ```
+### 3. Database Setup
 
-4. **Set up database**
-   ```bash
-   # Create MySQL database and user
-   mysql -u root -p
-   CREATE DATABASE shift_notes_db;
-   CREATE USER 'your_database_user'@'localhost' IDENTIFIED BY 'your_database_password';
-   GRANT ALL PRIVILEGES ON shift_notes_db.* TO 'your_database_user'@'localhost';
-   FLUSH PRIVILEGES;
-   EXIT;
-   
-   # Initialize database with tables and default data
-   node database-init.js
-   ```
+```bash
+# Create database and user
+mysql -u root -p
+```
 
-5. **Start the application**
-   ```bash
-   npm start
-   ```
+In MySQL console:
+```sql
+CREATE DATABASE shift_notes_db;
+CREATE USER 'your_database_user'@'localhost' IDENTIFIED BY 'your_database_password';
+GRANT ALL PRIVILEGES ON shift_notes_db.* TO 'your_database_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
 
-6. **Access the application**
-   - Open browser to `http://localhost:3000`
-   - Login with default admin credentials:
-     - Email: `admin@shiftnotes.com`
-     - Password: `your_admin_password_here` (set in database-init.js)
+### 4. Environment Configuration
 
-## 🔐 Default Login Credentials
+```bash
+# Create environment file
+echo "DB_HOST=localhost" > .env
+echo "DB_USER=your_database_user" >> .env
+echo "DB_PASSWORD=your_database_password" >> .env
+echo "DB_NAME=shift_notes_db" >> .env
+echo "JWT_SECRET=your_jwt_secret_here" >> .env
+echo "PORT=3000" >> .env
+```
+
+### 5. Initialize Database
+
+```bash
+node database-init.js
+```
+
+### 6. Start the Application
+
+```bash
+node server.js
+```
+
+### 7. Access the Application
+
+- Open browser to `http://localhost:3000`
+- Login with default credentials:
+  - **Email:** `admin@shiftnotes.com`
+  - **Password:** `admin123`
+
+## 👥 Default Users
+
+The system comes with pre-configured users for testing:
 
 ### Administrator
 - **Email:** `admin@shiftnotes.com`
-- **Password:** Set during database initialization
-- **Access:** Full system access
+- **Password:** `admin123`
+- **Role:** Full system access
 
 ### Regular User
 - **Email:** `user@shiftnotes.com`
-- **Password:** Set during database initialization
-- **Access:** Basic shift notes and inventory
+- **Password:** `user123`
+- **Role:** Basic access
 
 ## 📁 Project Structure
 
 ```
 shift-notes/
-├── public/
-│   └── index.html          # Main application file
-├── server.js               # Express server
-├── package.json            # Dependencies and scripts
-├── .env.example           # Environment variables template
-├── production-setup.md    # Production deployment guide
+├── public/                 # Frontend files
+│   ├── index.html         # Main application page
+│   └── main.js            # Frontend JavaScript
+├── server.js              # Main server file
+├── database-init.js       # Database initialization
+├── package.json           # Dependencies
+├── .env                   # Environment variables
+├── uploads/               # File uploads directory
+├── backups/               # Backup files
 └── README.md              # This file
 ```
 
@@ -126,130 +127,118 @@ shift-notes/
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `DB_HOST` | Database host | `localhost` |
-| `DB_USER` | Database username | `shift_user` |
+| `DB_USER` | Database username | - |
 | `DB_PASSWORD` | Database password | - |
 | `DB_NAME` | Database name | `shift_notes_db` |
+| `DB_PORT` | Database port | `3306` |
 | `JWT_SECRET` | JWT signing secret | - |
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment | `development` |
 
-## 🗄️ Database Schema
+### Database Schema
 
-### Users Table
-- `id` - Primary key
-- `name` - User's full name
-- `email` - Unique email address
-- `password_hash` - Encrypted password
-- `role` - User role (user/manager/admin)
-- `active` - Account status
-- `last_login` - Last login timestamp
+The application uses the following main tables:
 
-### Shift Notes Table
-- `id` - Primary key
-- `user_id` - Foreign key to users
-- `title` - Shift title
-- `date` - Shift date
-- `shift_type` - Day or night shift
-- `completed_audits` - JSON array of audits
-
-### Tasks Table
-- `id` - Primary key
-- `shift_note_id` - Foreign key to shift notes
-- `title` - Task title
-- `description` - Task description
-- `status` - Task status
-- `ticket_number` - ServiceNow ticket
-
-### Inventory Table
-- `id` - Primary key
-- `part_number` - Unique part number
-- `product_name` - Product name
-- `description` - Product description
-- `quantity` - Available quantity
-- `location` - Storage location
+- **users**: User accounts and authentication
+- **shift_notes**: Daily shift documentation
+- **tasks**: Individual tasks within shifts
+- **inventory**: Parts and materials tracking
+- **inventory_transactions**: Inventory usage history
+- **activity_log**: System activity tracking
+- **file_attachments**: Uploaded files
+- **settings**: Application settings
 
 ## 🔒 Security Features
 
-- **JWT Authentication** - Secure token-based authentication
-- **Password Hashing** - bcrypt password encryption
-- **Role-based Access** - Granular permission system
-- **Input Validation** - Server-side validation
-- **CORS Protection** - Cross-origin request protection
-- **Helmet Security** - Security headers
+- **Password Hashing**: All passwords are hashed using bcrypt
+- **JWT Authentication**: Secure token-based authentication
+- **Role-Based Access**: Different permission levels for users
+- **Input Validation**: Server-side validation for all inputs
+- **SQL Injection Protection**: Parameterized queries
+- **File Upload Security**: Restricted file types and sizes
 
-## 🆕 Recent Updates (v1.0.0)
+## 📱 Mobile Support
 
-### ✅ **Major Fixes Completed**
-- **Inventory System** - Fixed quantity updates, persistence, and transaction logging
-- **File Upload System** - Complete implementation with proper storage and management
-- **Backup System** - Automated and manual backup capabilities with proper permissions
-- **User Management** - Full CRUD operations with role-based access control
-- **Dashboard Data** - Real-time statistics and recent activity
-- **Error Handling** - User-friendly error messages and centralized error handling
-- **Shift Notes** - Fixed auto-creation issues and improved workflow
-- **Branding** - Updated to "Notentory" branding throughout the application
+The application is fully responsive and includes:
 
-### 🔧 **Technical Improvements**
-- Upgraded to multer 2.x for file uploads
-- Implemented proper database transaction logging
-- Added comprehensive activity logging
-- Fixed file system API usage (fsPromises)
-- Improved backup system with proper permissions
-- Enhanced user management with real API integration
+- **Mobile Navigation**: Hamburger menu for mobile devices
+- **Touch-Friendly Interface**: Optimized for touch interactions
+- **Responsive Design**: Adapts to different screen sizes
+- **Offline Capabilities**: Basic offline functionality
 
-## 📊 Backup & Recovery
+## 🔄 Backup & Restore
 
-### Automated Backups
-- Daily automated backups at 2:00 AM
-- 30-day retention policy
-- Database and application backups
-- Configurable backup paths
+### Automatic Backups
 
-### Manual Backups
-- On-demand backup creation
-- Custom backup descriptions
-- Download backup files
-- System restore functionality
+The system includes automated backup functionality:
 
-## 🛠️ Development
+- **Database Backups**: Daily MySQL dumps
+- **File Backups**: Uploaded files backup
+- **Retention Policy**: Configurable backup retention
+- **Restore Capability**: Easy restore from backups
 
-### Running in Development Mode
+### Manual Backup
+
 ```bash
-npm run dev
+# Create manual backup
+curl -X POST http://localhost:3000/api/backup/manual \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Manual backup"}'
 ```
 
-### File Structure
-- **Frontend:** Single-page application in `public/index.html`
-- **Backend:** Express.js server in `server.js`
-- **Database:** MySQL with connection pooling
+## 📊 API Endpoints
 
-### Adding New Features
-1. Update the frontend HTML/JavaScript
-2. Add corresponding backend API endpoints
-3. Update database schema if needed
-4. Test thoroughly before deployment
+### Authentication
+- `POST /api/login` - User login
+- `GET /api/users` - Get users (authenticated)
 
-## 🚀 Production Deployment
+### Shift Notes
+- `GET /api/shifts/current` - Get current shift
+- `POST /api/shifts` - Create new shift
+- `PUT /api/shifts/:id` - Update shift
+- `GET /api/shifts` - Get all shifts
 
-For production deployment instructions, see [production-setup.md](production-setup.md).
+### Inventory
+- `GET /api/inventory` - Get inventory items
+- `POST /api/inventory` - Add inventory item
+- `PUT /api/inventory/:id` - Update inventory
+- `POST /api/inventory/import` - Bulk import
 
-## 📞 Support
+### Tasks
+- `POST /api/tasks` - Create task
+- `PUT /api/tasks/:id` - Update task
 
-### Troubleshooting
-1. Check application logs
-2. Verify database connection
-3. Check environment variables
-4. Review browser console for errors
+### Reports
+- `GET /api/dashboard` - Dashboard data
+- `GET /api/reports/inventory` - Inventory reports
+
+## 🚀 Deployment
+
+For production deployment, see [production-setup.md](production-setup.md) for detailed instructions.
+
+## 🐛 Troubleshooting
 
 ### Common Issues
-- **Login not working:** Check JWT_SECRET in .env
-- **Database errors:** Verify database credentials and connection
-- **Port conflicts:** Change PORT in .env
-- **CORS errors:** Update CORS_ORIGIN in .env
 
-## 📝 License
+1. **Database Connection Failed**
+   - Verify MySQL is running
+   - Check database credentials in `.env`
+   - Ensure database exists
 
-This project is licensed under the MIT License.
+2. **Port Already in Use**
+   - Change PORT in `.env`
+   - Kill existing process: `lsof -ti:3000 | xargs kill`
+
+3. **Permission Denied**
+   - Check file permissions for uploads directory
+   - Ensure proper ownership of application files
+
+### Logs
+
+- **Application Logs**: Check console output
+- **Database Logs**: MySQL error log
+- **System Logs**: System journal
 
 ## 🤝 Contributing
 
@@ -259,8 +248,29 @@ This project is licensed under the MIT License.
 4. Test thoroughly
 5. Submit a pull request
 
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+
+1. Check the troubleshooting section
+2. Review the API documentation
+3. Check application logs
+4. Contact system administrator
+
+## 🔄 Updates
+
+To update the application:
+
+1. Backup current installation
+2. Pull latest changes
+3. Update dependencies: `npm install`
+4. Run database migrations if needed
+5. Restart the application
+
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** January 2024  
-**Maintainer:** Your Company IT Team 
+**Notentory** - Streamlining shift documentation and inventory management for modern industrial operations. 

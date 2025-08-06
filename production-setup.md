@@ -1,105 +1,98 @@
-# 🚀 Production Deployment Guide
+# Production Setup Guide - Notentory
 
-## 📋 Pre-Deployment Checklist
+This guide provides step-by-step instructions for deploying the Notentory application in a production environment.
 
-### ✅ **System Requirements**
-- **Node.js**: Version 16.0.0 or higher
-- **MySQL**: Version 8.0 or higher
-- **Nginx** (recommended for reverse proxy)
-- **SSL Certificate** (for HTTPS)
-- **Domain Name** (optional but recommended)
+## Prerequisites
 
-### ✅ **Server Setup**
+- Ubuntu 20.04+ or CentOS 8+ server
+- Root or sudo access
+- Domain name (optional but recommended)
 
-#### **1. Update System Packages**
+## 1. System Updates
+
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-#### **2. Install Node.js (if not already installed)**
+## 2. Install Node.js
+
 ```bash
+# Add NodeSource repository
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+# Install Node.js
 sudo apt-get install -y nodejs
+
+# Verify installation
+node --version
+npm --version
 ```
 
-#### **3. Install MySQL**
+## 3. Install MySQL
+
 ```bash
+# Install MySQL
 sudo apt install mysql-server -y
+
+# Secure MySQL installation
 sudo mysql_secure_installation
 ```
 
-#### **4. Install Nginx (for reverse proxy)**
-```bash
-sudo apt install nginx -y
-```
+## 4. Database Setup
 
-## 🗄️ **Database Setup**
-
-### **1. Create Database and User**
-```bash
-sudo mysql -u root -p
-```
-
-In MySQL console:
 ```sql
-CREATE DATABASE shift_notes_db;
+-- Create database
+CREATE DATABASE shift_notes_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Create user (replace with your actual username and password)
 CREATE USER 'shift_user'@'localhost' IDENTIFIED BY 'your_secure_password';
 GRANT ALL PRIVILEGES ON shift_notes_db.* TO 'shift_user'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
-```
 
-### **2. Create Database Tables**
-```sql
+-- Create tables
 USE shift_notes_db;
 
--- Users table
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('user', 'manager', 'admin') DEFAULT 'user',
+    role ENUM('admin', 'manager', 'technician') DEFAULT 'technician',
     active BOOLEAN DEFAULT TRUE,
-    last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Insert default administrator
-INSERT INTO users (name, email, password_hash, role, active) VALUES 
-('Administrator', 'admin@company.com', '$2b$10$your_hashed_password_here', 'admin', TRUE);
-
--- Shift notes table
 CREATE TABLE shift_notes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
-    shift_type ENUM('day', 'night') NOT NULL,
+    shift_type ENUM('day', 'night', 'swing') NOT NULL,
+    user_id INT NOT NULL,
     completed_audits JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Tasks table
 CREATE TABLE tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     shift_note_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+    status ENUM('in_progress', 'completed', 'blocked') DEFAULT 'in_progress',
     ticket_number VARCHAR(100),
+    parts_used JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (shift_note_id) REFERENCES shift_notes(id)
 );
 
--- Inventory table
 CREATE TABLE inventory (
     id INT AUTO_INCREMENT PRIMARY KEY,
     part_number VARCHAR(100) UNIQUE NOT NULL,
     product_name VARCHAR(255) NOT NULL,
+    vendor VARCHAR(255),
     description TEXT,
     quantity INT DEFAULT 0,
     location VARCHAR(255),
@@ -107,70 +100,107 @@ CREATE TABLE inventory (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Task inventory usage table
-CREATE TABLE task_inventory (
+CREATE TABLE inventory_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    task_id INT NOT NULL,
     inventory_id INT NOT NULL,
-    quantity_used INT NOT NULL,
+    user_id INT NOT NULL,
+    transaction_type ENUM('add', 'remove', 'set') NOT NULL,
+    quantity_change INT NOT NULL,
+    previous_quantity INT NOT NULL,
+    new_quantity INT NOT NULL,
+    reason TEXT,
+    shift_note_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+    FOREIGN KEY (inventory_id) REFERENCES inventory(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (shift_note_id) REFERENCES shift_notes(id)
 );
+
+CREATE TABLE activity_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    table_name VARCHAR(50) NOT NULL,
+    record_id INT,
+    details JSON,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE file_attachments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    shift_note_id INT,
+    task_id INT,
+    filename VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_size INT NOT NULL,
+    mime_type VARCHAR(100),
+    uploaded_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (shift_note_id) REFERENCES shift_notes(id),
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (uploaded_by) REFERENCES users(id)
+);
+
+CREATE TABLE settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert default admin user (replace with your actual credentials)
+INSERT INTO users (name, email, password_hash, role, active) VALUES
+('Administrator', 'admin@company.com', '$2b$10$your_hashed_password_here', 'admin', TRUE);
 ```
 
-## 🔧 **Application Setup**
+## 5. Application Setup
 
-### **1. Create Environment File**
 ```bash
-cp .env.example .env
-nano .env
-```
+# Clone or upload application files
+cd /opt
+sudo mkdir shift-notes
+sudo chown $USER:$USER shift-notes
+cd shift-notes
 
-Update with your production values:
-```env
+# Install dependencies
+npm install
+
+# Create environment file
+cat > .env << EOF
+# Database Configuration
 DB_HOST=localhost
+DB_PORT=3306
 DB_USER=shift_user
 DB_PASSWORD=your_secure_password
 DB_NAME=shift_notes_db
-DB_PORT=3306
+
+# JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRES_IN=24h
+
+# Server Configuration
 PORT=3000
 NODE_ENV=production
-SESSION_SECRET=your_session_secret_here
+
+# CORS Configuration
 CORS_ORIGIN=https://yourdomain.com
-BACKUP_PATH=/opt/backups
-BACKUP_RETENTION_DAYS=30
+EOF
+
+# Create uploads directory
+mkdir uploads
+mkdir backups
 ```
 
-### **2. Install Dependencies**
-```bash
-npm install --production
-```
+## 6. Nginx Configuration
 
-### **3. Generate Secure Passwords**
-```bash
-# Generate JWT secret
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-
-# Generate session secret
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-## 🌐 **Nginx Configuration**
-
-### **1. Create Nginx Site Configuration**
-```bash
-sudo nano /etc/nginx/sites-available/shift-notes
-```
-
-Add this configuration:
 ```nginx
 server {
     listen 80;
     server_name yourdomain.com www.yourdomain.com;
-
+    
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -185,184 +215,151 @@ server {
 }
 ```
 
-### **2. Enable Site**
-```bash
-sudo ln -s /etc/nginx/sites-available/shift-notes /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
+## 7. SSL Certificate (Let's Encrypt)
 
-## 🔒 **SSL Certificate (Let's Encrypt)**
-
-### **1. Install Certbot**
 ```bash
+# Install Certbot
 sudo apt install certbot python3-certbot-nginx -y
-```
 
-### **2. Obtain SSL Certificate**
-```bash
+# Obtain SSL certificate
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# Test auto-renewal
+sudo certbot renew --dry-run
 ```
 
-## 🚀 **Application Deployment**
+## 8. Systemd Service
 
-### **1. Create Systemd Service**
 ```bash
-sudo nano /etc/systemd/system/shift-notes.service
-```
-
-Add this configuration:
-```ini
+# Create service file
+sudo tee /etc/systemd/system/shift-notes.service > /dev/null << EOF
 [Unit]
-Description=Notentory - Shift Notes Application
-After=network.target
+Description=Notentory Shift Notes Application
+After=network.target mysql.service
 
 [Service]
 Type=simple
 User=www-data
 WorkingDirectory=/opt/shift-notes
 ExecStart=/usr/bin/node server.js
-Restart=on-failure
+Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
-```
+EOF
 
-### **2. Start and Enable Service**
-```bash
+# Enable and start service
 sudo systemctl daemon-reload
 sudo systemctl enable shift-notes
 sudo systemctl start shift-notes
-sudo systemctl status shift-notes
 ```
 
-## 🔧 **Security Hardening**
+## 9. Security Hardening
 
-### **1. Firewall Configuration**
 ```bash
-sudo ufw allow ssh
-sudo ufw allow 'Nginx Full'
+# Configure firewall
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 443
 sudo ufw enable
+
+# Secure MySQL
+sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+sudo mysql -e "DELETE FROM mysql.user WHERE User='';"
+sudo mysql -e "FLUSH PRIVILEGES;"
+
+# Set up automatic security updates
+sudo apt install unattended-upgrades -y
+sudo dpkg-reconfigure -plow unattended-upgrades
 ```
 
-### **2. Database Security**
+## 10. Monitoring and Logs
+
 ```bash
-sudo mysql -u root -p
-```
-
-In MySQL:
-```sql
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-DROP DATABASE IF EXISTS test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-## 📊 **Monitoring and Logs**
-
-### **1. View Application Logs**
-```bash
+# View application logs
 sudo journalctl -u shift-notes -f
+
+# Monitor system resources
+htop
+df -h
+free -h
 ```
 
-### **2. View Nginx Logs**
-```bash
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
-```
+## 11. Backup Strategy
 
-## 🔄 **Backup Setup**
-
-### **1. Create Backup Directory**
 ```bash
-sudo mkdir -p /opt/backups
-sudo chown www-data:www-data /opt/backups
-```
-
-### **2. Create Backup Script**
-```bash
-sudo nano /opt/backups/backup.sh
-```
-
-Add this script:
-```bash
+# Create backup script
+sudo tee /opt/shift-notes/backup.sh > /dev/null << 'EOF'
 #!/bin/bash
+BACKUP_DIR="/opt/shift-notes/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/opt/backups"
-DB_NAME="shift_notes_db"
-DB_USER="shift_user"
-DB_PASS="your_secure_password"
 
 # Database backup
-mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > $BACKUP_DIR/db_backup_$DATE.sql
+mysqldump -u shift_user -p'your_secure_password' shift_notes_db > $BACKUP_DIR/db_backup_$DATE.sql
 
-# Application backup
-tar -czf $BACKUP_DIR/app_backup_$DATE.tar.gz /opt/shift-notes
+# Uploads backup
+tar -czf $BACKUP_DIR/uploads_backup_$DATE.tar.gz uploads/
 
-# Clean old backups (keep 30 days)
-find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
-find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+EOF
+
+# Make executable and add to crontab
+chmod +x /opt/shift-notes/backup.sh
+(crontab -l 2>/dev/null; echo "0 2 * * * /opt/shift-notes/backup.sh") | crontab -
 ```
 
-### **3. Make Script Executable and Schedule**
+## 12. Performance Optimization
+
 ```bash
-sudo chmod +x /opt/backups/backup.sh
-sudo crontab -e
+# Install PM2 for process management
+sudo npm install -g pm2
+
+# Configure PM2
+pm2 start server.js --name "shift-notes"
+pm2 startup
+pm2 save
 ```
 
-Add this line for daily backups at 2 AM:
-```
-0 2 * * * /opt/backups/backup.sh
+## Troubleshooting
+
+### Common Issues
+
+1. **Port already in use**: Check if another service is using port 3000
+2. **Database connection failed**: Verify MySQL credentials and permissions
+3. **Permission denied**: Ensure proper file permissions for uploads directory
+
+### Log Locations
+
+- Application logs: `/var/log/syslog` or `journalctl -u shift-notes`
+- Nginx logs: `/var/log/nginx/access.log` and `/var/log/nginx/error.log`
+- MySQL logs: `/var/log/mysql/error.log`
+
+### Performance Monitoring
+
+```bash
+# Monitor Node.js application
+pm2 monit
+
+# Monitor system resources
+htop
+iotop
 ```
 
-## ✅ **Post-Deployment Checklist**
+## Security Checklist
 
-- [ ] Application accessible via HTTPS
-- [ ] Database connection working
-- [ ] Login functionality working
-- [ ] User management working
-- [ ] Backup system configured
-- [ ] Monitoring and logging set up
 - [ ] Firewall configured
 - [ ] SSL certificate installed
-- [ ] Systemd service running
-- [ ] Nginx reverse proxy working
+- [ ] Database secured
+- [ ] Regular backups configured
+- [ ] Automatic updates enabled
+- [ ] Strong passwords set
+- [ ] File permissions configured
+- [ ] Log monitoring enabled
 
-## 🆘 **Troubleshooting**
+## Support
 
-### **Common Issues:**
-
-1. **Application won't start:**
-   ```bash
-   sudo systemctl status shift-notes
-   sudo journalctl -u shift-notes -f
-   ```
-
-2. **Database connection failed:**
-   ```bash
-   mysql -u shift_user -p shift_notes_db
-   ```
-
-3. **Nginx not serving:**
-   ```bash
-   sudo nginx -t
-   sudo systemctl status nginx
-   ```
-
-4. **SSL certificate issues:**
-   ```bash
-   sudo certbot certificates
-   sudo certbot renew --dry-run
-   ```
-
-## 📞 **Support**
-
-For issues or questions:
-1. Check application logs: `sudo journalctl -u shift-notes -f`
-2. Check nginx logs: `sudo tail -f /var/log/nginx/error.log`
-3. Verify database connection
-4. Check firewall settings 
+For issues and support, please refer to the application documentation or contact your system administrator. 
